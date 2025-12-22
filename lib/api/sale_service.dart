@@ -13,6 +13,7 @@ class SaleService {
   /// payments: [{amount:num|string, method:String}]
   Future<Map<String, dynamic>> createSale({
     String? branchId,
+    Map<String, dynamic>? meta,
     int? customerId,
     int? vendorId,
     int? userId,
@@ -20,11 +21,14 @@ class SaleService {
     List<Map<String, dynamic>> payments = const [],
     double discount = 0.0,
     double tax = 0.0,
+    double delivery = 0.0,
   }) async {
     final payload = <String, dynamic>{
       // "branch_id": branchId,
       "discount": discount,
+      if (meta != null) "meta": meta,
       "tax": tax,
+      "delivery": delivery,
       if (branchId != null) "branch_id": branchId,
       if (customerId != null) "customer_id": customerId,
       if (vendorId != null) "vendor_id": vendorId,

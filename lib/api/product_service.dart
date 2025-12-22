@@ -8,11 +8,13 @@ class ProductService {
   /// Get all products with pagination & search
   Future<Map<String, dynamic>> getProducts({
     int page = 1,
+    int per_page = 20,
     String? search,
     int? vendorId,
   }) async {
     final queryParams = {
       "page": page.toString(),
+      "per_page": per_page.toString(),
       if (search != null && search.isNotEmpty) "search": search,
       if (vendorId != null) "vendor_id": vendorId.toString(),
     };

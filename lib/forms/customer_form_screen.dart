@@ -146,34 +146,6 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
-              if (!isEdit)
-                _buildTextField(
-                  controller: _passwordController,
-                  label: "Password",
-                  obscure: true,
-                  // validator: (v) => !isEdit && (v == null || v.length < 6)
-                  //     ? "Password must be at least 6 characters"
-                  //     : null,
-                ),
-              if (!isEdit) const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _status,
-                items: const [
-                  DropdownMenuItem(value: 'active', child: Text("Active")),
-                  DropdownMenuItem(value: 'inactive', child: Text("Inactive")),
-                  DropdownMenuItem(value: 'blocked', child: Text("Blocked")),
-                ],
-                onChanged: (v) => setState(() => _status = v!),
-                decoration: InputDecoration(
-                  labelText: "Status",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
-              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

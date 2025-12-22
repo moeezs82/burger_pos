@@ -416,20 +416,20 @@ final _reportGroups = <_ReportGroup>[
     title: 'Finance',
     caption: 'Receivables, payables & cash',
     items: [
-      _ReportItem(
-        key: 'customer_ledger',
-        title: 'Customer Ledger',
-        subtitle: 'AR balance & activity',
-        icon: Icons.account_balance_wallet_rounded,
-        meta: const {'Aging': 'Yes'},
-      ),
-      _ReportItem(
-        key: 'vendor_ap',
-        title: 'Vendor A/P',
-        subtitle: 'Payables & aging',
-        icon: Icons.inventory_2_rounded,
-        meta: const {'Due': 'This week'},
-      ),
+      // _ReportItem(
+      //   key: 'customer_ledger',
+      //   title: 'Customer Ledger',
+      //   subtitle: 'AR balance & activity',
+      //   icon: Icons.account_balance_wallet_rounded,
+      //   meta: const {'Aging': 'Yes'},
+      // ),
+      // _ReportItem(
+      //   key: 'vendor_ap',
+      //   title: 'Vendor A/P',
+      //   subtitle: 'Payables & aging',
+      //   icon: Icons.inventory_2_rounded,
+      //   meta: const {'Due': 'This week'},
+      // ),
       _ReportItem(
         key: 'cashbook_daily',
         title: 'CashBook Daily',
@@ -453,33 +453,33 @@ final _reportGroups = <_ReportGroup>[
       // ),
     ],
   ),
-  _ReportGroup(
-    title: 'Inventory',
-    caption: 'Movement & profitability',
-    items: [
-      _ReportItem(
-        key: 'stock_movement',
-        title: 'Stock Movement',
-        subtitle: 'In/Out, adjustments',
-        icon: Icons.swap_vert_circle_rounded,
-        meta: const {'Basis': 'Avg Cost'},
-      ),
-      // _ReportItem(
-      //   key: 'gross_margin',
-      //   title: 'Gross Margin',
-      //   subtitle: 'GM% by product/category',
-      //   icon: Icons.pie_chart_rounded,
-      //   meta: const {'Period': 'MTD'},
-      // ),
-      _ReportItem(
-        key: 'returns_analytics',
-        title: 'Returns Analytics',
-        subtitle: 'Rate, reasons, impact',
-        icon: Icons.undo_rounded,
-        meta: const {'Trend': '3 mo'},
-      ),
-    ],
-  ),
+  // _ReportGroup(
+  //   title: 'Inventory',
+  //   caption: 'Movement & profitability',
+  //   items: [
+  //     _ReportItem(
+  //       key: 'stock_movement',
+  //       title: 'Stock Movement',
+  //       subtitle: 'In/Out, adjustments',
+  //       icon: Icons.swap_vert_circle_rounded,
+  //       meta: const {'Basis': 'Avg Cost'},
+  //     ),
+  //     // _ReportItem(
+  //     //   key: 'gross_margin',
+  //     //   title: 'Gross Margin',
+  //     //   subtitle: 'GM% by product/category',
+  //     //   icon: Icons.pie_chart_rounded,
+  //     //   meta: const {'Period': 'MTD'},
+  //     // ),
+  //     _ReportItem(
+  //       key: 'returns_analytics',
+  //       title: 'Returns Analytics',
+  //       subtitle: 'Rate, reasons, impact',
+  //       icon: Icons.undo_rounded,
+  //       meta: const {'Trend': '3 mo'},
+  //     ),
+  //   ],
+  // ),
 ];
 
 /* --------------------------- Quick theming tip --------------------------- */

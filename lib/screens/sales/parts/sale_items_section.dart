@@ -3,20 +3,10 @@ import 'package:flutter/material.dart';
 
 class SaleItemsSection extends StatelessWidget {
   final Map<String, dynamic> sale;
-  final VoidCallback onPickVendor;
-  final Map<String, dynamic>? selectedVendor;
-  final VoidCallback onAddItem;
-  final void Function(Map item) onEditItem;
-  final void Function(int itemId) onDeleteItem;
 
   const SaleItemsSection({
     super.key,
     required this.sale,
-    required this.onPickVendor,
-    required this.selectedVendor,
-    required this.onAddItem,
-    required this.onEditItem,
-    required this.onDeleteItem,
   });
 
   // ---- helpers ----
@@ -54,23 +44,6 @@ class SaleItemsSection extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                   ),
                 ),
-                // If you want the vendor filter back, uncomment:
-                // OutlinedButton.icon(
-                //   onPressed: onPickVendor,
-                //   icon: const Icon(Icons.storefront_outlined),
-                //   label: Text(
-                //     selectedVendor == null
-                //         ? "Filter Vendor"
-                //         : "Vendor: ${selectedVendor?['first_name'] ?? ''}",
-                //     overflow: TextOverflow.ellipsis,
-                //   ),
-                // ),
-                // const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: onAddItem,
-                  icon: const Icon(Icons.add),
-                  label: const Text("Add Item"),
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -101,7 +74,6 @@ class SaleItemsSection extends StatelessWidget {
                 final total = _lineTotal(i);
 
                 return InkWell(
-                  onTap: () => onEditItem(i),
                   child: Column(
                     children: [
                       SizedBox(

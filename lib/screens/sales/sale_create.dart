@@ -3,12 +3,16 @@ import 'package:enterprise_pos/api/sale_service.dart';
 import 'package:enterprise_pos/providers/auth_provider.dart';
 import 'package:enterprise_pos/providers/branch_provider.dart';
 import 'package:enterprise_pos/screens/sales/parts/create_sale_items_section.dart';
+import 'package:enterprise_pos/services/thermal_printer_service.dart';
+import 'package:enterprise_pos/services/receipt_preview_service.dart';
+import 'package:enterprise_pos/widgets/product_picker_grid_sheet.dart';
 import 'package:enterprise_pos/widgets/product_picker_sheet.dart';
 import 'package:enterprise_pos/widgets/customer_picker_sheet.dart';
 import 'package:enterprise_pos/widgets/user_picker_sheet.dart';
 import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // local widgets split into small files
 import 'package:enterprise_pos/screens/sales/parts/sale_party_section.dart';
@@ -42,6 +46,13 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
   // discount/tax live controllers (now edited inline in totals)
   final discountController = TextEditingController(text: "0");
   final taxController = TextEditingController(text: "0");
+  final deliveryController = TextEditingController(text: "0");
+  final TextEditingController cashReceivedController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+  final TextEditingController customerNameController = TextEditingController();
+  final TextEditingController customerPhoneController = TextEditingController();
+
+  bool _customerLocked = false;
 
   // barcode (kept intact)
   final _barcodeController = TextEditingController();
@@ -68,32 +79,22 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
     void _recalc() => setState(() {});
     discountController.addListener(_recalc);
     taxController.addListener(_recalc);
+    deliveryController.addListener(_recalc);
   }
 
   @override
   void dispose() {
     discountController.dispose();
     taxController.dispose();
+    deliveryController.dispose();
     _barcodeController.dispose();
     _barcodeFocusNode.dispose();
+    cashReceivedController.dispose();
+    addressController.dispose();
+    customerNameController.dispose();
+    customerPhoneController.dispose();
     super.dispose();
   }
-
-  // ---------------- Pickers ----------------
-  // Future<void> _pickBranch() async {
-  //   final token = Provider.of<AuthProvider>(context, listen: false).token!;
-  //   final branch = await showModalBottomSheet<Map<String, dynamic>>(
-  //     context: context,
-  //     builder: (_) => BranchPickerSheet(token: token),
-  //   );
-  //   if (!mounted) return;
-  //   if (branch != null) {
-  //     setState(() {
-  //       _selectedBranch = branch;
-  //       _selectedBranchId = branch['id'].toString();
-  //     });
-  //   }
-  // }
 
   Future<void> _pickCustomer() async {
     final token = Provider.of<AuthProvider>(context, listen: false).token!;
@@ -107,220 +108,134 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
       setState(() {
         _selectedCustomer = null;
         _selectedCustomerId = null;
+        _customerLocked = false;
+
+        // Option A: clear on unselect
+        customerNameController.text = "";
+        customerPhoneController.text = "";
+        addressController.text = "";
       });
     } else {
+      final address = (customer['address'] ?? "").toString();
+      final name = (customer['first_name'] ?? "").toString();
+      final phone = (customer['phone'] ?? "").toString();
       setState(() {
         _selectedCustomer = customer;
         _selectedCustomerId = customer['id'].toString();
+        customerNameController.text = name;
+        customerPhoneController.text = phone;
+        addressController.text = address;
+
+        _customerLocked = true; // lock editing when customer picked
       });
     }
   }
 
-  Future<void> _pickVendor() async {
-    final token = Provider.of<AuthProvider>(context, listen: false).token!;
-    final vendor = await showModalBottomSheet<Map<String, dynamic>?>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => VendorPickerSheet(token: token),
-    );
-    if (!mounted) return;
+  void _clearCustomerSelection() {
     setState(() {
-      _selectedVendor = vendor;
-      _selectedVendorId = vendor?['id'] as int?;
-      _items = []; // avoid cross-vendor mix
+      _selectedCustomer = null;
+      _selectedCustomerId = null;
+      _customerLocked = false;
+      customerNameController.text = "";
+      customerPhoneController.text = "";
+      addressController.text = "";
     });
   }
 
-  Future<void> _pickUser() async {
-    final globalBranchId = context.read<BranchProvider>().selectedBranchId;
-    final String? effectiveBranchIdStr =
-        globalBranchId?.toString() ?? _selectedBranchId;
-    final String effectiveBranchId = effectiveBranchIdStr ?? '';
-
-    final token = Provider.of<AuthProvider>(context, listen: false).token!;
-    final user = await showModalBottomSheet<Map<String, dynamic>?>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) =>
-          UserPickerSheet(token: token, branchId: effectiveBranchId),
-    );
-    if (!mounted) return;
-    setState(() {
-      _selectedUser = user;
-      _selectedUserId = user?['id'] as int?;
-    });
-  }
-
-  // ---------------- Items ----------------
+  // ---------------- Items (Multi Add with Qty) ----------------
   Future<void> _addItemManual() async {
     final token = Provider.of<AuthProvider>(context, listen: false).token!;
-    final product = await showModalBottomSheet<Map<String, dynamic>>(
+
+    // ✅ Already selected products in cart/items (for preselect)
+    final alreadySelectedIds = _items
+        .map((e) => int.tryParse(e["product_id"].toString()) ?? 0)
+        .where((id) => id > 0)
+        .toList();
+
+    // ✅ Already selected qty map (id -> qty)
+    final alreadySelectedQty = <int, double>{
+      for (final it in _items)
+        (int.tryParse(it["product_id"].toString()) ?? 0):
+            (double.tryParse(it["quantity"].toString()) ?? 1.0),
+    }..removeWhere((k, _) => k == 0);
+
+    final size = MediaQuery.of(context).size;
+
+    final picked = await showModalBottomSheet<List<Map<String, dynamic>>>(
       context: context,
       isScrollControlled: true,
-      builder: (_) =>
-          ProductPickerSheet(token: token, vendorId: _selectedVendorId),
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      constraints: BoxConstraints.tightFor(
+        width: size.width,
+        height: size.height, // ✅ force full height
+      ),
+      builder: (sheetCtx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Material(
+          color: Theme.of(sheetCtx).colorScheme.surface,
+          child: ProductPickerGridSheet(
+            token: token,
+            vendorId: _selectedVendorId,
+            multi: true,
+            alreadySelectedIds: alreadySelectedIds,
+            alreadySelectedQty: alreadySelectedQty,
+          ),
+        ),
+      ),
     );
-    if (product == null) return;
 
-    final price = double.tryParse(product['price']?.toString() ?? '') ?? 0.0;
+    if (picked == null || picked.isEmpty) return;
 
     setState(() {
-      _items.add({
-        "product_id": product['id'],
-        "name": product['name'],
-        "cost_price": product['cost_price'],
-        "wholesale_price": product['wholesale_price'],
-        "quantity": 1.0,
-        "price": price,
-        "discount_pct": 0.0,
-        "total": _lineTotal(price: price, qty: 1.0, discPct: 0.0),
-      });
-    });
-  }
+      for (final x in picked) {
+        final product = (x["product"] as Map?)?.cast<String, dynamic>();
+        final qty = (x["qty"] as num?)?.toDouble() ?? 1.0;
+        if (product == null) continue;
 
-  void _editItem(int index) {
-    final item = _items[index];
-    final qtyController = TextEditingController(
-      text: item['quantity'].toString(),
-    );
-    final priceController = TextEditingController(
-      text: item['price'].toString(),
-    );
+        final productId = int.tryParse(product['id']?.toString() ?? '') ?? 0;
+        if (productId == 0) continue;
 
-    final costPrice = item['cost_price'] ?? 0.0;
-    final wholesalePrice = item['wholesale_price'] ?? 0.0;
+        final price =
+            double.tryParse(product['price']?.toString() ?? '') ?? 0.0;
 
-    bool showHidden = false;
+        // ✅ if already in items -> UPDATE qty to picked qty (or merge as you want)
+        final idx = _items.indexWhere(
+          (it) => (int.tryParse(it["product_id"].toString()) ?? 0) == productId,
+        );
 
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setLocal) {
-          return AlertDialog(
-            title: Text("Edit ${item['name']}"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: qtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Quantity"),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Sale Price"),
-                ),
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  icon: Icon(
-                    showHidden ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  label: Text(
-                    showHidden ? "Hide Cost/Wholesale" : "Show Cost/Wholesale",
-                  ),
-                  onPressed: () => setLocal(() => showHidden = !showHidden),
-                ),
-                if (showHidden) ...[
-                  const Divider(),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Cost Price: \$${costPrice.toString()}",
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        Text(
-                          "Wholesale Price: \$${wholesalePrice.toString()}",
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _items[index]['quantity'] =
-                        int.tryParse(qtyController.text) ?? 1;
-                    _items[index]['price'] =
-                        double.tryParse(priceController.text) ?? 0.0;
-                  });
-                  Navigator.pop(context);
-                },
-                child: const Text("Save"),
-              ),
-            ],
+        if (idx != -1) {
+          // If your picker returns FINAL qty (set qty), then use this:
+          final newQty = qty;
+
+          _items[idx]["quantity"] = newQty;
+
+          final discPct =
+              double.tryParse(_items[idx]["discount_pct"]?.toString() ?? '') ??
+              0.0;
+
+          final rowPrice =
+              double.tryParse(_items[idx]["price"]?.toString() ?? '') ?? price;
+
+          _items[idx]["total"] = _lineTotal(
+            price: rowPrice,
+            qty: newQty,
+            discPct: discPct,
           );
-        },
-      ),
-    );
-  }
-
-  // ---------------- Payments ----------------
-  Future<void> _addPaymentDialog() async {
-    final amountController = TextEditingController();
-    String method = "cash";
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Add Payment"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Amount"),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: method,
-              decoration: const InputDecoration(labelText: "Method"),
-              items: const [
-                DropdownMenuItem(value: "cash", child: Text("Cash")),
-                DropdownMenuItem(value: "card", child: Text("Card")),
-                DropdownMenuItem(value: "bank", child: Text("Bank")),
-                DropdownMenuItem(value: "wallet", child: Text("Wallet")),
-              ],
-              onChanged: (val) => method = val!,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final amt = double.tryParse(amountController.text) ?? 0.0;
-              if (amt > 0) {
-                setState(
-                  () => _payments.add({
-                    "amount": amt.toString(),
-                    "method": method,
-                  }),
-                );
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Add"),
-          ),
-        ],
-      ),
-    );
+        } else {
+          _items.add({
+            "product_id": productId,
+            "name": product['name'],
+            "cost_price": product['cost_price'],
+            "wholesale_price": product['wholesale_price'],
+            "quantity": qty,
+            "price": price,
+            "discount_pct": 0.0,
+            "total": _lineTotal(price: price, qty: qty, discPct: 0.0),
+          });
+        }
+      }
+    });
   }
 
   // ---------------- Barcode ----------------
@@ -390,13 +305,10 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
 
     final globalBranchId = context.read<BranchProvider>().selectedBranchId;
     final effectiveBranchId = globalBranchId?.toString() ?? _selectedBranchId;
+    final address = addressController.text.trim();
+    final manualName = customerNameController.text.trim();
+    final manualPhone = customerPhoneController.text.trim();
 
-    // if (effectiveBranchId == null || effectiveBranchId.isEmpty) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text("Please select a branch (on Home)")),
-    //   );
-    //   return;
-    // }
     double _rowNum(v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
     final subtotal = _items.fold<double>(0.0, (sum, i) {
       final price = _rowNum(i['price']);
@@ -405,8 +317,14 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
       return sum + _lineTotal(price: price, qty: qty, discPct: disc);
     });
     double discount = double.tryParse(discountController.text.trim()) ?? 0.0;
+    double cashReceived =
+        double.tryParse(cashReceivedController.text.trim()) ?? 0.0;
     double tax = double.tryParse(taxController.text.trim()) ?? 0.0;
-    double total = (subtotal - discount + tax).clamp(0, double.infinity);
+    double delivery = double.tryParse(deliveryController.text.trim()) ?? 0.0;
+    double total = (subtotal - discount + tax + delivery).clamp(
+      0,
+      double.infinity,
+    );
 
     final List<Map<String, dynamic>> paymentsToSend =
         List<Map<String, dynamic>>.from(_payments);
@@ -420,7 +338,15 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
     setState(() => _submitting = true);
 
     try {
-      await _saleService.createSale(
+      final meta = <String, dynamic>{
+        "customer_snapshot": {
+          "name": customerNameController.text.trim(),
+          "phone": customerPhoneController.text.trim(),
+          "address": addressController.text.trim(),
+        },
+        "cash_received": cashReceived,
+      };
+      final res = await _saleService.createSale(
         branchId: effectiveBranchId,
         customerId: _selectedCustomerId != null
             ? int.tryParse(_selectedCustomerId!)
@@ -431,7 +357,75 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         payments: paymentsToSend,
         discount: discount,
         tax: tax,
+        delivery: delivery,
+        meta: meta,
       );
+
+      final changeAmount = (cashReceived - total)
+          .clamp(0, double.infinity)
+          .toDouble();
+
+      final receiptNo =
+          (res['data']?['invoice_no'] ?? res['data']?['id'] ?? 'N/A')
+              .toString();
+
+      final receiptItems = _items.map((i) {
+        final name = (i['name'] ?? '').toString();
+        final price = double.tryParse(i['price']?.toString() ?? '') ?? 0.0;
+        final qty = double.tryParse(i['quantity']?.toString() ?? '') ?? 0.0;
+        final lineTotal =
+            double.tryParse(i['total']?.toString() ?? '') ?? (price * qty);
+        return ReceiptItem(
+          name: name,
+          price: price,
+          qty: qty,
+          total: lineTotal,
+        );
+      }).toList();
+      final hasPrinter = false;
+      if (!kIsWeb && hasPrinter) {
+        try {
+          const printerIp = "192.168.1.50";
+          await ThermalPrinterService.instance.printSaleReceipt(
+            printerIp: printerIp,
+            shopName: "MR HUNGRY",
+            shopAddress: "Mr Hungry Dhak Road Sukkur",
+            shopPhone: "+923021922516",
+            receiptNo: receiptNo,
+            dateTime: DateTime.now(),
+            items: receiptItems,
+            subtotal: subtotal,
+            discount: discount,
+            tax: tax,
+            grandTotal: total,
+            cashReceived: cashReceived,
+            changeAmount: changeAmount,
+            meta: meta,
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Sale created but printing failed: $e")),
+            );
+          }
+        }
+      } else {
+        await ReceiptPreviewService.instance.previewReceipt(
+          shopName: "MR HUNGRY",
+          shopAddress: "Mr Hungry Dhak Road Sukkur",
+          shopPhone: "+923021922516",
+          receiptNo: receiptNo,
+          dateTime: DateTime.now(),
+          items: receiptItems,
+          subtotal: subtotal,
+          discount: discount,
+          tax: tax,
+          grandTotal: total,
+          cashReceived: cashReceived,
+          changeAmount: changeAmount,
+          meta: meta,
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -506,7 +500,6 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAll = context.watch<BranchProvider>().isAll;
     double _rowNum(v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
     final subtotal = _items.fold<double>(0.0, (sum, i) {
       final price = _rowNum(i['price']);
@@ -516,7 +509,11 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
     });
     final discount = _toDouble(discountController);
     final tax = _toDouble(taxController);
-    final total = (subtotal - discount + tax).clamp(0, double.infinity);
+    final delivery = _toDouble(deliveryController);
+    final total = (subtotal - discount + tax + delivery).clamp(
+      0,
+      double.infinity,
+    );
 
     final paid = _payments.fold<double>(
       0,
@@ -541,25 +538,85 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
           child: Column(
             children: [
               _hiddenBarcodeField(),
-
-              // Party (customer/salesman/branch/vendor)
               PartySectionCard(
-                isAll: isAll,
                 selectedCustomer: _selectedCustomer,
-                selectedUser: _selectedUser,
-                selectedBranch: _selectedBranch,
-                selectedVendor: _selectedVendor,
                 onPickCustomer: _pickCustomer,
-                onPickUser: _pickUser,
-                // onPickBranch: _pickBranch,
-                onPickVendor: _pickVendor,
-                onClearVendor: () => setState(() {
-                  _selectedVendor = null;
-                  _selectedVendorId = null;
-                  _items = [];
-                }),
               ),
+              const SizedBox(height: 12),
 
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            "Customer Info",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const Spacer(),
+                          if (_selectedCustomerId != null)
+                            TextButton.icon(
+                              onPressed: _clearCustomerSelection,
+                              icon: const Icon(Icons.close, size: 18),
+                              label: const Text("Clear"),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      TextFormField(
+                        controller: customerNameController,
+                        // readOnly: _customerLocked,
+                        decoration: InputDecoration(
+                          labelText: "Customer Name",
+                          hintText: "Walk-in customer name",
+                          prefixIcon: const Icon(Icons.person_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      TextFormField(
+                        controller: customerPhoneController,
+                        // readOnly: _customerLocked,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: "Phone",
+                          hintText: "03xx-xxxxxxx",
+                          prefixIcon: const Icon(Icons.phone_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      TextFormField(
+                        controller: addressController,
+                        // readOnly: _customerLocked,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: "Address",
+                          hintText: "Customer address",
+                          prefixIcon: const Icon(Icons.location_on_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
 
               // Scanner + Items
@@ -572,12 +629,6 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
                 },
               ),
               const SizedBox(height: 8),
-              // ItemsCard(
-              //   items: _items,
-              //   onAddItem: _addItemManual,
-              //   onEditItem: _editItem,
-              //   onRemoveItem: (idx) => setState(() => _items.removeAt(idx)),
-              // ),
               // --- FAST TABULAR ITEMS ---
               ItemsTable(
                 items: _items,
@@ -592,12 +643,8 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
 
               // Payments
               PaymentsCard(
-                payments: _payments,
                 autoCashIfEmpty: _autoCashIfEmpty,
                 onToggleAutoCash: (v) => setState(() => _autoCashIfEmpty = v),
-                onAddPayment: _addPaymentDialog,
-                onRemovePayment: (idx) =>
-                    setState(() => _payments.removeAt(idx)),
               ),
 
               const SizedBox(height: 12),
@@ -607,10 +654,9 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
                 subtotal: _money(subtotal),
                 discountController: discountController,
                 taxController: taxController,
+                deliveryController: deliveryController,
                 total: _money(total),
-                paid: _money(paid),
-                balance: _money(balance),
-                balanceColor: _balanceColor(balance),
+                cashReceivedController: cashReceivedController,
               ),
 
               const SizedBox(height: 20),

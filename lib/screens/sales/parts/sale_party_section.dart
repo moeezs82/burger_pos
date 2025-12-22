@@ -1,30 +1,14 @@
 import 'package:flutter/material.dart';
 
 class PartySectionCard extends StatelessWidget {
-  final bool isAll;
   final Map<String, dynamic>? selectedCustomer;
-  final Map<String, dynamic>? selectedUser;
-  final Map<String, dynamic>? selectedBranch;
-  final Map<String, dynamic>? selectedVendor;
 
   final VoidCallback onPickCustomer;
-  final VoidCallback onPickUser;
-  // final VoidCallback onPickBranch;
-  final VoidCallback onPickVendor;
-  final VoidCallback onClearVendor;
 
   const PartySectionCard({
     super.key,
-    required this.isAll,
     required this.selectedCustomer,
-    required this.selectedUser,
-    required this.selectedBranch,
-    required this.selectedVendor,
     required this.onPickCustomer,
-    required this.onPickUser,
-    // required this.onPickBranch,
-    required this.onPickVendor,
-    required this.onClearVendor,
   });
 
   @override
@@ -40,27 +24,6 @@ class PartySectionCard extends StatelessWidget {
               onTap: onPickCustomer,
             ),
             const SizedBox(height: 12),
-            SelectField(
-              label: "Salesman",
-              valueText: selectedUser?['name'] ?? "Select Salesman",
-              onTap: onPickUser,
-            ),
-            const SizedBox(height: 12),
-            if (isAll)
-              // SelectField(
-              //   label: "Branch",
-              //   valueText: selectedBranch?['name'] ?? "Select Branch",
-              //   onTap: onPickBranch,
-              // ),
-            if (isAll) const SizedBox(height: 12),
-            SelectField(
-              label: "Vendor (optional)",
-              valueText:
-                  selectedVendor?['first_name']?.toString() ?? "Select Vendor",
-              onTap: onPickVendor,
-              showClear: selectedVendor != null,
-              onClear: onClearVendor,
-            ),
           ],
         ),
       ),
