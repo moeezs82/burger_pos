@@ -2,7 +2,6 @@ import 'package:enterprise_pos/api/user_service.dart';
 import 'package:enterprise_pos/forms/user_form_screen.dart';
 import 'package:enterprise_pos/providers/auth_provider.dart';
 import 'package:enterprise_pos/providers/branch_provider.dart';
-import 'package:enterprise_pos/widgets/branch_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -40,7 +39,7 @@ class _UsersScreenState extends State<UsersScreen> {
     }
 
     try {
-      final branchId = context.read<BranchProvider?>()?.selectedBranchId as String?;
+      final branchId = context.read<BranchProvider?>()?.selectedBranchId?.toString();
       final data = await _usersService.getUsers(
         page: _page,
         search: _search,

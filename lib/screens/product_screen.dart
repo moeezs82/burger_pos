@@ -221,7 +221,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                   ?.cast<Map<String, dynamic>>() ??
                               const [];
 
-                          final int stockQty = selectedBranchId == null
+                          // final int stockQty = selectedBranchId == null
+                          final int stockQty = true
                               // All branches → sum everything
                               ? stocks.fold<int>(
                                   0,
@@ -251,15 +252,83 @@ class _ProductsScreenState extends State<ProductsScreen> {
                             ),
                             child: ListTile(
                               leading: CircleAvatar(
+                                radius: 22,
                                 backgroundColor:
                                     theme.colorScheme.primaryContainer,
-                                child: Text(
-                                  p['name'][0].toUpperCase(),
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onPrimaryContainer,
+                                child: ClipOval(
+                                  child: SizedBox(
+                                    width: 44,
+                                    height: 44,
+                                    child: (() {
+                                      final url = (p['image_url'] ?? '')
+                                          .toString()
+                                          .trim();
+
+                                      // ✅ no url -> placeholder (icon or first letter)
+                                      if (url.isEmpty) {
+                                        final name = (p['name'] ?? '')
+                                            .toString()
+                                            .trim();
+                                        return Center(
+                                          child: name.isNotEmpty
+                                              ? Text(
+                                                  name[0].toUpperCase(),
+                                                  style: TextStyle(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onPrimaryContainer,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.inventory_2,
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onPrimaryContainer,
+                                                  size: 20,
+                                                ),
+                                        );
+                                      }
+
+                                      // ✅ url exists -> load image with fallback on error
+                                      return Image.network(
+                                        url,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) {
+                                          final name = (p['name'] ?? '')
+                                              .toString()
+                                              .trim();
+                                          return Container(
+                                            color: theme
+                                                .colorScheme
+                                                .primaryContainer,
+                                            alignment: Alignment.center,
+                                            child: name.isNotEmpty
+                                                ? Text(
+                                                    name[0].toUpperCase(),
+                                                    style: TextStyle(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .onPrimaryContainer,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    Icons.broken_image,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onPrimaryContainer,
+                                                    size: 20,
+                                                  ),
+                                          );
+                                        },
+                                      );
+                                    })(),
                                   ),
                                 ),
                               ),
+
                               title: Text(
                                 p['name'],
                                 style: const TextStyle(

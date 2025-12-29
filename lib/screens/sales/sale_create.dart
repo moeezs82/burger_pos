@@ -344,6 +344,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
           "phone": customerPhoneController.text.trim(),
           "address": addressController.text.trim(),
         },
+        "delivery": delivery,
         "cash_received": cashReceived,
       };
       final res = await _saleService.createSale(
@@ -366,7 +367,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
           .toDouble();
 
       final receiptNo =
-          (res['data']?['invoice_no'] ?? res['data']?['id'] ?? 'N/A')
+          (res['data']?['sale']?['invoice_no'] ?? res['data']?['id'] ?? 'N/A')
               .toString();
 
       final receiptItems = _items.map((i) {

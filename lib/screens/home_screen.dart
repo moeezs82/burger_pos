@@ -61,26 +61,26 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const SaleReturnsScreen()),
         ),
       ),
-      // _Tile(
-      //   icon: Icons.shopping_cart_checkout,
-      //   title: "Purchases",
-      //   subtitle: "Supplier bills",
-      //   color: Colors.blue,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const PurchasesScreen()),
-      //   ),
-      // ),
-      // _Tile(
-      //   icon: Icons.assignment_return_outlined,
-      //   title: "Purchase Claim",
-      //   subtitle: "Damage/shortage",
-      //   color: Colors.indigo,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const PurchaseClaimsScreen()),
-      //   ),
-      // ),
+      _Tile(
+        icon: Icons.shopping_cart_checkout,
+        title: "Purchases",
+        subtitle: "Supplier bills",
+        color: Colors.blue,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PurchasesScreen()),
+        ),
+      ),
+      _Tile(
+        icon: Icons.assignment_return_outlined,
+        title: "Purchase Claim",
+        subtitle: "Damage/shortage",
+        color: Colors.indigo,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PurchaseClaimsScreen()),
+        ),
+      ),
       _Tile(
         icon: Icons.inventory_2,
         title: "Products",
@@ -91,16 +91,16 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const ProductsScreen()),
         ),
       ),
-      // _Tile(
-      //   icon: Icons.warehouse,
-      //   title: "Stocks",
-      //   subtitle: "On-hand by branch",
-      //   color: Colors.red,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const StockScreen()),
-      //   ),
-      // ),
+      _Tile(
+        icon: Icons.warehouse,
+        title: "Stocks",
+        subtitle: "On-hand by branch",
+        color: Colors.red,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const StockScreen()),
+        ),
+      ),
 
       // _Tile(
       //   icon: Icons.receipt_long_rounded,
@@ -134,26 +134,26 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const CustomersScreen()),
         ),
       ),
-      // _Tile(
-      //   icon: Icons.groups_2,
-      //   title: "Vendors",
-      //   subtitle: "Supplier list",
-      //   color: Colors.orange,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const VendorsScreen()),
-      //   ),
-      // ),
-      // _Tile(
-      //   icon: Icons.groups_2,
-      //   title: "Users",
-      //   subtitle: "App Users / Salesmen",
-      //   color: Colors.orange,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const UsersScreen()),
-      //   ),
-      // ),
+      _Tile(
+        icon: Icons.groups_2,
+        title: "Vendors",
+        subtitle: "Supplier list",
+        color: Colors.orange,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const VendorsScreen()),
+        ),
+      ),
+      _Tile(
+        icon: Icons.groups_2,
+        title: "Users",
+        subtitle: "App Users / Salesmen",
+        color: Colors.orange,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const UsersScreen()),
+        ),
+      ),
       _Tile(
         icon: Icons.bar_chart,
         title: "Reports",

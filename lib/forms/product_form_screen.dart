@@ -1,9 +1,14 @@
+// product_form_screen.dart
+import 'dart:io';
 import 'dart:math';
+
 import 'package:enterprise_pos/api/common_service.dart';
 import 'package:enterprise_pos/api/product_service.dart';
 import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 import '../providers/branch_provider.dart';
 
@@ -55,48 +60,93 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   bool get _isEdit => widget.product != null;
 
-  // ---- Branch helpers (use BranchProvider API you already have) ----
+  // ---- Branch helpers ----
   bool _isAllBranchesSelected(BranchProvider bp) => bp.isAll;
   int? _activeBranchId(BranchProvider bp) => bp.selectedBranchId;
+
+  // ---- Image ----
+  File? _imageFile;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final x = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (x == null) return;
+    setState(() => _imageFile = File(x.path));
+  }
+
+  void _clearPickedImage() {
+    setState(() => _imageFile = null);
+  }
+
+  String? get _existingImageUrl {
+    final p = widget.product;
+    if (p == null) return null;
+    // supports either image_url or image (relative path)
+    final url = p['image_url']?.toString();
+    if (url != null && url.isNotEmpty) return url;
+
+    final rel = p['image']?.toString();
+    if (rel != null && rel.isNotEmpty) {
+      // If your API already returns full URL in image, this will still work.
+      // Otherwise keep using image_url from backend (recommended).
+      return rel;
+    }
+    return null;
+  }
 
   @override
   void initState() {
     super.initState();
+
     final token = Provider.of<AuthProvider>(context, listen: false).token!;
     _productService = ProductService(token: token);
     _commonService = CommonService(token: token);
 
     if (widget.product != null) {
       final p = widget.product!;
-      _skuController.text = p['sku'] ?? _generateSKU();
-      _barcodeController.text = p['barcode'] ?? _generateBarcode();
-      _nameController.text = p['name'] ?? '';
-      _descController.text = p['description'] ?? '';
+      _skuController.text = (p['sku'] ?? _generateSKU()).toString();
+      _barcodeController.text = (p['barcode'] ?? _generateBarcode()).toString();
+      _nameController.text = (p['name'] ?? '').toString();
+      _descController.text = (p['description'] ?? '').toString();
       _priceController.text = p['price']?.toString() ?? '';
       _costPriceController.text = p['cost_price']?.toString() ?? '';
       _wholesalePriceController.text = p['wholesale_price']?.toString() ?? '';
       _taxRateController.text = p['tax_rate']?.toString() ?? '';
       _discountController.text = p['discount']?.toString() ?? '';
+      _stockController.text = p['stock']?.toString() ?? '';
+
       _isActive = p['is_active'] == 1 || p['is_active'] == true;
       _taxInclusive = p['tax_inclusive'] == 1 || p['tax_inclusive'] == true;
-      _selectedCategoryId = p['category_id'];
-      _selectedBrandId = p['brand_id'];
+
+      _selectedCategoryId = (p['category_id'] is int)
+          ? p['category_id'] as int
+          : int.tryParse('${p['category_id']}');
+      _selectedBrandId = (p['brand_id'] is int)
+          ? p['brand_id'] as int
+          : int.tryParse('${p['brand_id']}');
 
       // Prefill vendor from product if present
-      _selectedVendorId = p['vendor_id'] is int ? p['vendor_id'] as int : null;
-      if (p['vendor'] is Map<String, dynamic>) {
+      _selectedVendorId = (p['vendor_id'] is int)
+          ? p['vendor_id'] as int
+          : int.tryParse('${p['vendor_id']}');
+      final v = p['vendor'];
+      if (v is Map) {
         _selectedVendor = {
-          'id': p['vendor']['id'],
-          'first_name': p['vendor']['first_name'],
+          'id': v['id'],
+          'first_name': v['first_name'] ?? v['name'] ?? 'Vendor',
         };
-        _selectedVendorId = _selectedVendor?['id'] as int?;
+        _selectedVendorId = (v['id'] is int)
+            ? v['id'] as int
+            : int.tryParse('${v['id']}');
       }
     }
 
     // If a vendorId is passed to the screen, lock it in:
     if (widget.vendorId != null) {
       _selectedVendorId = widget.vendorId;
-      // Optional: if you have vendor details, set a name; fallback to id-only label
       _selectedVendor = {
         'id': widget.vendorId,
         'first_name': 'Vendor #${widget.vendorId}',
@@ -104,6 +154,25 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
 
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _skuController.dispose();
+    _barcodeController.dispose();
+    _nameController.dispose();
+    _descController.dispose();
+    _priceController.dispose();
+    _stockController.dispose();
+    _costPriceController.dispose();
+    _wholesalePriceController.dispose();
+    _taxRateController.dispose();
+    _discountController.dispose();
+
+    for (final c in _branchStockControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
@@ -127,6 +196,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         _visibleBranches = visible;
 
         // controllers for visible branches only
+        _branchStockControllers.clear();
+
         if (widget.product != null && widget.product!['stocks'] != null) {
           for (final b in _visibleBranches) {
             final stock = (widget.product!['stocks'] as List).firstWhere(
@@ -160,10 +231,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     return "SKU-$ts$r";
   }
 
-  String _generateBarcode() {
-    final millis = DateTime.now().millisecondsSinceEpoch;
-    return "$millis";
-  }
+  String _generateBarcode() => "${DateTime.now().millisecondsSinceEpoch}";
 
   Future<String?> _showAddDialog(String type) async {
     final controller = TextEditingController();
@@ -190,7 +258,6 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   }
 
   Future<void> _addBranch() async {
-    // Only meaningful when "All Branches" is selected (button is hidden otherwise)
     final nameController = TextEditingController();
     final locController = TextEditingController();
     final phoneController = TextEditingController();
@@ -198,45 +265,47 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Add Branch"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: "Name"),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          title: const Text("Add Branch"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Name"),
+              ),
+              TextField(
+                controller: locController,
+                decoration: const InputDecoration(labelText: "Location"),
+              ),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: "Phone"),
+              ),
+              SwitchListTile(
+                title: const Text("Active"),
+                value: isActive,
+                onChanged: (v) => setSt(() => isActive = v),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
             ),
-            TextField(
-              controller: locController,
-              decoration: const InputDecoration(labelText: "Location"),
-            ),
-            TextField(
-              controller: phoneController,
-              decoration: const InputDecoration(labelText: "Phone"),
-            ),
-            SwitchListTile(
-              title: const Text("Active"),
-              value: isActive,
-              onChanged: (v) => isActive = v,
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, {
+                "name": nameController.text,
+                "location": locController.text,
+                "phone": phoneController.text,
+                "is_active": isActive,
+              }),
+              child: const Text("Save"),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, {
-              "name": nameController.text,
-              "location": locController.text,
-              "phone": phoneController.text,
-              "is_active": isActive,
-            }),
-            child: const Text("Save"),
-          ),
-        ],
       ),
     );
 
@@ -265,10 +334,14 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         child: VendorPickerSheet(token: token),
       ),
     );
+
     if (picked != null) {
+      final id = (picked['id'] is int)
+          ? picked['id'] as int
+          : int.tryParse('${picked['id']}');
       setState(() {
         _selectedVendor = picked;
-        _selectedVendorId = picked['id'] as int?;
+        _selectedVendorId = id;
       });
     }
   }
@@ -288,7 +361,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       "barcode": _barcodeController.text,
       "name": _nameController.text,
       "description": _descController.text,
-      "stock": double.tryParse(_stockController.text)??0,
+      "stock": double.tryParse(_stockController.text) ?? 0,
       "price": double.tryParse(_priceController.text) ?? 0.0,
       "cost_price": double.tryParse(_costPriceController.text) ?? 0.0,
       "wholesale_price": double.tryParse(_wholesalePriceController.text) ?? 0.0,
@@ -297,22 +370,31 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       "discount": double.tryParse(_discountController.text) ?? 0.0,
       "category_id": _selectedCategoryId,
       "brand_id": _selectedBrandId,
-      "vendor_id": _selectedVendorId, // optional
+      "vendor_id": _selectedVendorId,
       "is_active": _isActive,
       "branch_stocks": branchStocks,
     };
 
     try {
       if (widget.product == null) {
-        final product = await _productService.createProduct(payload);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Product created successfully")),
-        );
+        final product = (_imageFile != null)
+            ? await _productService.createProductWithImage(
+                payload,
+                imageFile: _imageFile!,
+              )
+            : await _productService.createProduct(payload);
+
         Navigator.pop(context, product);
       } else {
-        await _productService.updateProduct(widget.product!['id'], payload);
-        if (!mounted) return;
+        if (_imageFile != null) {
+          await _productService.updateProductWithImage(
+            widget.product!['id'],
+            payload,
+            imageFile: _imageFile!,
+          );
+        } else {
+          await _productService.updateProduct(widget.product!['id'], payload);
+        }
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -322,20 +404,21 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
 
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final bp = Provider.of<BranchProvider>(context); // listen for UI toggles
+    final theme = Theme.of(context);
+    final bp = Provider.of<BranchProvider>(context);
+
     final showAll = _isAllBranchesSelected(bp);
     final activeId = _activeBranchId(bp);
 
-    final fixedVendorId = widget.vendorId; // lock if provided to screen
-    final productVendorId =
-        widget.product?['vendor_id']; // vendor from existing product
-    final showReadOnly =
-        _isEdit || fixedVendorId != null; // read-only on edit OR when locked
+    final fixedVendorId = widget.vendorId;
+    final productVendorId = widget.product?['vendor_id'];
+    final showReadOnly = _isEdit || fixedVendorId != null;
+
     final effectiveVendorId =
         fixedVendorId ?? productVendorId ?? _selectedVendorId;
     final effectiveVendorName =
@@ -353,6 +436,66 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           key: _formKey,
           child: Column(
             children: [
+              // ✅ Image Picker
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      color: Colors.grey.shade200,
+                      child: _imageFile != null
+                          ? Image.file(_imageFile!, fit: BoxFit.cover)
+                          : (_existingImageUrl != null
+                                ? Image.network(
+                                    _existingImageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) {
+                                      return const Icon(
+                                        Icons.image_not_supported,
+                                        size: 34,
+                                      );
+                                    },
+                                  )
+                                : const Icon(Icons.image, size: 34)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _pickImage,
+                            icon: const Icon(Icons.upload),
+                            label: Text(
+                              _imageFile == null
+                                  ? "Pick Product Image"
+                                  : "Change Image",
+                            ),
+                          ),
+                        ),
+                        if (_imageFile != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: _clearPickedImage,
+                              icon: const Icon(Icons.clear, color: Colors.red),
+                              label: const Text(
+                                "Remove picked image",
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
               TextFormField(
                 controller: _skuController,
                 decoration: InputDecoration(
@@ -364,7 +507,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         setState(() => _skuController.text = _generateSKU()),
                   ),
                 ),
-                validator: (v) => v!.isEmpty ? "Required" : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? "Required" : null,
               ),
               const SizedBox(height: 12),
 
@@ -389,7 +533,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   labelText: "Name",
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => v!.isEmpty ? "Required" : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? "Required" : null,
               ),
               const SizedBox(height: 12),
 
@@ -422,8 +567,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       items: _categories
                           .map(
                             (c) => DropdownMenuItem<int>(
-                              value: c['id'],
-                              child: Text(c['name']),
+                              value: c['id'] as int,
+                              child: Text(c['name'].toString()),
                             ),
                           )
                           .toList(),
@@ -441,7 +586,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         );
                         setState(() {
                           _categories.add(newCat);
-                          _selectedCategoryId = newCat['id'];
+                          _selectedCategoryId = (newCat['id'] is int)
+                              ? newCat['id'] as int
+                              : int.tryParse('${newCat['id']}');
                         });
                       }
                     },
@@ -467,8 +614,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       items: _brands
                           .map(
                             (b) => DropdownMenuItem<int>(
-                              value: b['id'],
-                              child: Text(b['name']),
+                              value: b['id'] as int,
+                              child: Text(b['name'].toString()),
                             ),
                           )
                           .toList(),
@@ -484,7 +631,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         final newBrand = await _commonService.createBrand(name);
                         setState(() {
                           _brands.add(newBrand);
-                          _selectedBrandId = newBrand['id'];
+                          _selectedBrandId = (newBrand['id'] is int)
+                              ? newBrand['id'] as int
+                              : int.tryParse('${newBrand['id']}');
                         });
                       }
                     },
@@ -493,23 +642,21 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Vendor (optional)
-              // --- Vendor UI ---
+              // Vendor
               if (showReadOnly) ...[
-                // Read-only tile, no picker, no clear
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   title: const Text("Vendor"),
-                  subtitle: Text("Vendor Selected"),
+                  subtitle: Text(effectiveVendorName.toString()),
                   trailing: const Icon(Icons.lock),
                 ),
               ] else ...[
-                // Picker visible only on create AND when no fixed vendorId is passed
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   title: const Text("Vendor (optional)"),
                   subtitle: Text(
-                    _selectedVendor?['first_name']?.toString() ?? 'None selected',
+                    _selectedVendor?['first_name']?.toString() ??
+                        'None selected',
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -545,6 +692,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
@@ -554,6 +702,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: _costPriceController,
                 keyboardType: TextInputType.number,
@@ -563,6 +712,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: _wholesalePriceController,
                 keyboardType: TextInputType.number,
@@ -572,6 +722,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: _taxRateController,
                 keyboardType: TextInputType.number,
@@ -581,11 +732,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
               SwitchListTile(
                 title: const Text("Tax Inclusive"),
                 value: _taxInclusive,
                 onChanged: (v) => setState(() => _taxInclusive = v),
               ),
+
               TextFormField(
                 controller: _discountController,
                 keyboardType: TextInputType.number,
@@ -622,6 +775,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         : stocks
                               .where((s) => s['branch_id'] == activeId)
                               .toList();
+
                     return filtered.map((stock) {
                       final branchName =
                           stock['branch']?['name'] ??
@@ -634,7 +788,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(color: Colors.grey.shade300),
                           ),
-                          title: Text(branchName),
+                          title: Text(branchName.toString()),
                           trailing: Text(
                             "Qty: $qty",
                             style: const TextStyle(fontWeight: FontWeight.bold),
@@ -647,10 +801,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               else
                 Column(
                   children: _visibleBranches.map((b) {
+                    final id = (b['id'] is int)
+                        ? b['id'] as int
+                        : int.tryParse('${b['id']}') ?? 0;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: TextFormField(
-                        controller: _branchStockControllers[b['id']],
+                        controller: _branchStockControllers[id],
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: "${b['name']} Stock",
@@ -680,6 +837,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                           _isEdit ? "Update Product" : "Create Product",
                         ),
                         onPressed: _save,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          textStyle: theme.textTheme.titleMedium,
+                        ),
                       ),
               ),
             ],
