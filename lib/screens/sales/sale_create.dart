@@ -20,7 +20,8 @@ import 'package:enterprise_pos/screens/sales/parts/sale_items_payments.dart';
 import 'package:enterprise_pos/screens/sales/parts/sale_totals_card.dart';
 
 class CreateSaleScreen extends StatefulWidget {
-  const CreateSaleScreen({super.key});
+  final String? sale_type;
+  const CreateSaleScreen({super.key, this.sale_type});
 
   @override
   State<CreateSaleScreen> createState() => _CreateSaleScreenState();
@@ -38,6 +39,8 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
   int? _selectedVendorId;
   Map<String, dynamic>? _selectedUser;
   int? _selectedUserId;
+  Map<String, dynamic>? _selectedDeliveryBoy;
+  int? _selectedDeliveryBoyId;
 
   // cart & payments
   List<Map<String, dynamic>> _items = [];
@@ -127,6 +130,27 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         addressController.text = address;
 
         _customerLocked = true; // lock editing when customer picked
+      });
+    }
+  }
+
+  Future<void> _pickDeliveryBoy() async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token!;
+    final deliveryBoy = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => UserPickerSheet(token: token),
+    );
+    if (!mounted) return;
+    if (deliveryBoy == null) {
+      setState(() {
+        _selectedDeliveryBoy = null;
+        _selectedDeliveryBoyId = null;
+      });
+    } else {
+      setState(() {
+        _selectedDeliveryBoy = deliveryBoy;
+        _selectedDeliveryBoyId = deliveryBoy['id'];
       });
     }
   }
@@ -305,9 +329,6 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
 
     final globalBranchId = context.read<BranchProvider>().selectedBranchId;
     final effectiveBranchId = globalBranchId?.toString() ?? _selectedBranchId;
-    final address = addressController.text.trim();
-    final manualName = customerNameController.text.trim();
-    final manualPhone = customerPhoneController.text.trim();
 
     double _rowNum(v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
     final subtotal = _items.fold<double>(0.0, (sum, i) {
@@ -354,12 +375,14 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
             : null,
         vendorId: _selectedVendorId,
         userId: _selectedUserId,
+        deliveryBoyId: _selectedDeliveryBoyId,
         items: _items,
         payments: paymentsToSend,
         discount: discount,
         tax: tax,
         delivery: delivery,
         meta: meta,
+        sale_type: widget.sale_type
       );
 
       final changeAmount = (cashReceived - total)
@@ -498,6 +521,21 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
     if (balance < 0) return Colors.orange;
     return Colors.green;
   }
+  String get _saleTitle {
+    final t = (widget.sale_type ?? '').toLowerCase();
+    switch (t) {
+      case 'dine_in':
+        return 'Dine In';
+      case 'delivery':
+        return 'Delivery';
+      case 'takeaway':
+        return 'Take Away';
+      case 'self':
+        return 'Self';
+      default:
+        return 'Sales';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +562,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Create Sale"),
+        title: Text("Create $_saleTitle"),
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 8.0),
@@ -542,6 +580,8 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
               PartySectionCard(
                 selectedCustomer: _selectedCustomer,
                 onPickCustomer: _pickCustomer,
+                selectedDeliveryBoy: _selectedDeliveryBoy,
+                onPickDeliveryBoy: _pickDeliveryBoy,
               ),
               const SizedBox(height: 12),
 

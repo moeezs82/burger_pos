@@ -17,22 +17,26 @@ class SaleService {
     int? customerId,
     int? vendorId,
     int? userId,
+    int? deliveryBoyId,
     List<Map<String, dynamic>> items = const [],
     List<Map<String, dynamic>> payments = const [],
     double discount = 0.0,
     double tax = 0.0,
     double delivery = 0.0,
+    String? sale_type,
   }) async {
     final payload = <String, dynamic>{
       // "branch_id": branchId,
       "discount": discount,
       if (meta != null) "meta": meta,
+      if (sale_type != null) "sale_type": sale_type,
       "tax": tax,
       "delivery": delivery,
       if (branchId != null) "branch_id": branchId,
       if (customerId != null) "customer_id": customerId,
       if (vendorId != null) "vendor_id": vendorId,
       if (userId != null) "salesman_id": userId,
+      if (deliveryBoyId != null) "delivery_boy_id": deliveryBoyId,
       "items": items
           .map(
             (it) => {

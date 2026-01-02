@@ -4,11 +4,16 @@ class PartySectionCard extends StatelessWidget {
   final Map<String, dynamic>? selectedCustomer;
 
   final VoidCallback onPickCustomer;
+  final Map<String, dynamic>? selectedDeliveryBoy;
+
+  final VoidCallback onPickDeliveryBoy;
 
   const PartySectionCard({
     super.key,
     required this.selectedCustomer,
     required this.onPickCustomer,
+    required this.selectedDeliveryBoy,
+    required this.onPickDeliveryBoy,
   });
 
   @override
@@ -22,6 +27,12 @@ class PartySectionCard extends StatelessWidget {
               label: "Customer",
               valueText: selectedCustomer?['first_name'] ?? "Select Customer",
               onTap: onPickCustomer,
+            ),
+            const SizedBox(height: 12),
+            SelectField(
+              label: "Delivery Boy",
+              valueText: selectedDeliveryBoy?['name'] ?? "Select Delivery Boy",
+              onTap: onPickDeliveryBoy,
             ),
             const SizedBox(height: 12),
           ],

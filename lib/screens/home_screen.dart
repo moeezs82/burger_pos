@@ -42,7 +42,7 @@ class HomeScreen extends StatelessWidget {
     // Dashboard tile definitions (clean & easy to maintain)
     final tiles = <_Tile>[
       _Tile(
-        icon: Icons.shopping_cart,
+        icon: Icons.point_of_sale, // ✅ general sales / counter billing
         title: "Sales",
         subtitle: "Create invoices",
         color: Colors.blue,
@@ -51,6 +51,55 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const SalesScreen()),
         ),
       ),
+      _Tile(
+        icon: Icons.restaurant, // ✅ dine-in
+        title: "Dine In",
+        subtitle: "Create invoices",
+        color: Colors.blue,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SalesScreen(sale_type: 'dine_in'),
+          ),
+        ),
+      ),
+      _Tile(
+        icon: Icons.delivery_dining, // ✅ delivery
+        title: "Delivery",
+        subtitle: "Create invoices",
+        color: Colors.blue,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SalesScreen(sale_type: 'delivery'),
+          ),
+        ),
+      ),
+      _Tile(
+        icon: Icons.takeout_dining, // ✅ takeaway / parcel
+        title: "Take Away",
+        subtitle: "Create invoices",
+        color: Colors.blue,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SalesScreen(sale_type: 'takeaway'),
+          ),
+        ),
+      ),
+      _Tile(
+        icon: Icons.shopping_bag, // ✅ self / pickup by customer / bag
+        title: "Self",
+        subtitle: "Create invoices",
+        color: Colors.blue,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SalesScreen(sale_type: 'self'),
+          ),
+        ),
+      ),
+
       _Tile(
         icon: Icons.assignment_return,
         title: "Sale Returns",
@@ -123,7 +172,6 @@ class HomeScreen extends StatelessWidget {
       //     MaterialPageRoute(builder: (_) => const AccountsScreen()),
       //   ),
       // ),
-
       _Tile(
         icon: Icons.people,
         title: "Customers",

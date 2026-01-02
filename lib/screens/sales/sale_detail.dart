@@ -1,6 +1,7 @@
 import 'package:enterprise_pos/api/core/api_client.dart';
 import 'package:enterprise_pos/providers/auth_provider.dart';
 import 'package:enterprise_pos/widgets/product_picker_sheet.dart';
+import 'package:enterprise_pos/widgets/user_picker_sheet.dart';
 import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:enterprise_pos/services/thermal_printer_service.dart';
@@ -24,6 +25,10 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Map<String, dynamic>? _sale;
   bool _loading = true;
   bool _updated = false;
+
+  Map<String, dynamic>? _selectedDeliveryBoy;
+  int? _selectedDeliveryBoyId;
+  bool _savingDeliveryBoy = false;
 
   // controllers for inline edit (filled from _sale on fetch)
   final discountCtl = TextEditingController();
@@ -61,6 +66,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         taxCtl.text = (_sale?['tax'] ?? 0).toString();
         deliveryCtl.text = (_sale?['delivery'] ?? 0).toString();
         _loading = false;
+        final db = _sale?['delivery_boy'];
+        _selectedDeliveryBoy = db;
+        _selectedDeliveryBoyId = (db?['id'] is int)
+            ? db['id']
+            : int.tryParse('${db?['id']}');
       });
     } catch (e) {
       if (!mounted) return;
@@ -68,6 +78,70 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Failed to load sale: $e")));
+    }
+  }
+
+  bool get _deliveryBoyChanged {
+    final currentId = int.tryParse('${_sale?['delivery_boy']?['id'] ?? ''}');
+    return currentId != _selectedDeliveryBoyId;
+  }
+
+  Future<void> _saveDeliveryBoy() async {
+    if (_sale == null) return;
+
+    setState(() => _savingDeliveryBoy = true);
+
+    try {
+      final saleId = _sale!['id'];
+
+      // ✅ This returns JSON Map, throws Exception on non-2xx
+      final json = await _api.put(
+        "/sales/$saleId/delivery-boy",
+        body: {
+          "delivery_boy_id": _selectedDeliveryBoyId, // null = unassign
+        },
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        // ✅ reflect change locally
+        _sale!['delivery_boy'] = _selectedDeliveryBoyId == null
+            ? null
+            : _selectedDeliveryBoy;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(json['message'] ?? 'Delivery boy updated')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _savingDeliveryBoy = false);
+    }
+  }
+
+  Future<void> _pickDeliveryBoy() async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token!;
+    final deliveryBoy = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => UserPickerSheet(token: token),
+    );
+    if (!mounted) return;
+    if (deliveryBoy == null) {
+      setState(() {
+        _selectedDeliveryBoy = null;
+        _selectedDeliveryBoyId = null;
+      });
+    } else {
+      setState(() {
+        _selectedDeliveryBoy = deliveryBoy;
+        _selectedDeliveryBoyId = deliveryBoy['id'];
+      });
     }
   }
 
@@ -290,6 +364,72 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                             Text(
                               "Customer: ${_sale!['customer']?['first_name'] ?? "Walk-in"} ${_sale!['customer']?['last_name'] ?? ""}",
                             ),
+                            // Delivery Boy (editable)
+                            InkWell(
+                              onTap: _pickDeliveryBoy,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        "Delivery Boy: ${_selectedDeliveryBoy?['name'] ?? _sale?['delivery_boy']?['name'] ?? 'Select'}",
+                                      ),
+                                    ),
+                                    const Icon(Icons.edit, size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            if (_deliveryBoyChanged) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: _savingDeliveryBoy
+                                          ? null
+                                          : () {
+                                              // reset selection back to current sale value
+                                              final db = _sale?['delivery_boy'];
+                                              setState(() {
+                                                _selectedDeliveryBoy = db;
+                                                _selectedDeliveryBoyId =
+                                                    (db?['id'] is int)
+                                                    ? db['id']
+                                                    : int.tryParse(
+                                                        '${db?['id']}',
+                                                      );
+                                              });
+                                            },
+                                      child: const Text("Cancel"),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _savingDeliveryBoy
+                                          ? null
+                                          : _saveDeliveryBoy,
+                                      icon: _savingDeliveryBoy
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Icon(Icons.save),
+                                      label: const Text("Save"),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                         trailing: IconButton(

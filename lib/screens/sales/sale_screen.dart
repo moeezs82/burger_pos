@@ -15,7 +15,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class SalesScreen extends StatefulWidget {
-  const SalesScreen({super.key});
+  final String? sale_type;
+  const SalesScreen({super.key, this.sale_type});
 
   @override
   State<SalesScreen> createState() => _SalesScreenState();
@@ -110,6 +111,7 @@ class _SalesScreenState extends State<SalesScreen> {
       if (_searchQuery.isNotEmpty) "search": _searchQuery,
       if (_fromDate != null) "date_from": _fmtDate(_fromDate!),
       if (_toDate != null) "date_to": _fmtDate(_toDate!),
+      if (widget.sale_type != null) "sale_type": widget.sale_type!,
     };
 
     final uri = Uri.parse(
@@ -250,19 +252,31 @@ class _SalesScreenState extends State<SalesScreen> {
     await _fetchInitial();
   }
 
+  String get _saleTitle {
+    final t = (widget.sale_type ?? '').toLowerCase();
+    switch (t) {
+      case 'dine_in':
+        return 'Dine In';
+      case 'delivery':
+        return 'Delivery';
+      case 'takeaway':
+        return 'Take Away';
+      case 'self':
+        return 'Self';
+      default:
+        return 'Sales';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAll = context.watch<BranchProvider>().isAll;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Sales"),
+        title: Text(_saleTitle),
         actions: [
-          // const BranchIndicator(tappable: false),
-          IconButton(
-            onPressed: () => _fetchInitial(),
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(onPressed: _fetchInitial, icon: const Icon(Icons.refresh)),
         ],
       ),
 
@@ -270,7 +284,7 @@ class _SalesScreenState extends State<SalesScreen> {
         onPressed: () async {
           final created = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CreateSaleScreen()),
+            MaterialPageRoute(builder: (_) => CreateSaleScreen(sale_type: widget.sale_type)),
           );
           if (created == true && mounted) _fetchInitial();
         },
@@ -648,7 +662,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                           //     style: const TextStyle(
                                           //       color: Colors.grey,
                                           //       fontSize: 11,
-                                          //       fontWeight: FontWeight.w500,  
+                                          //       fontWeight: FontWeight.w500,
                                           //     ),
                                           //   ),
                                         ],
