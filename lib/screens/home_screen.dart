@@ -1,48 +1,44 @@
-import 'package:enterprise_pos/screens/account_screen.dart';
-import 'package:enterprise_pos/screens/cashbook/cashbook_screen.dart';
-import 'package:enterprise_pos/screens/cashbook/daybook_screen.dart';
+import 'package:enterprise_pos/api/auth_service.dart';
+import 'package:enterprise_pos/providers/auth_provider.dart';
+import 'package:enterprise_pos/providers/branch_provider.dart';
 import 'package:enterprise_pos/screens/customers/customers_screen.dart';
+import 'package:enterprise_pos/screens/login_screen.dart';
 import 'package:enterprise_pos/screens/product_screen.dart';
 import 'package:enterprise_pos/screens/purchases/purchase_claim_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_cashbook_screen.dart';
+import 'package:enterprise_pos/screens/purchases/purchases_screen.dart';
 import 'package:enterprise_pos/screens/reports/report_hub_screen.dart';
 import 'package:enterprise_pos/screens/sales/sale_returns_screen.dart';
 import 'package:enterprise_pos/screens/sales/sale_screen.dart';
-import 'package:enterprise_pos/screens/purchases/purchases_screen.dart';
 import 'package:enterprise_pos/screens/stock_screen.dart';
 import 'package:enterprise_pos/screens/users_screen.dart';
 import 'package:enterprise_pos/screens/vendors/vendors_screen.dart';
-import 'package:enterprise_pos/widgets/branch_select_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../providers/branch_provider.dart';
-import 'login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  // Future<void> _openBranchSheet(BuildContext context) async {
-  //   await showModalBottomSheet(
-  //     context: context,
-  //     isScrollControlled: true,
-  //     builder: (_) => SizedBox(
-  //       height: MediaQuery.of(context).size.height * 0.85,
-  //       child: const BranchSelectSheet(),
-  //     ),
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final theme = Theme.of(context);
-    final bp = context.watch<BranchProvider>();
+    context.watch<BranchProvider>(); // keep if you need branch UI later
 
-    // Dashboard tile definitions (clean & easy to maintain)
+    final token = context.read<AuthProvider>().token!;
+    final authService = AuthService(token: token);
+
+    Future<void> guardedOpen(VoidCallback open) async {
+      final ok = await showPasswordModalAndVerify(
+        context: context,
+        verify: (pass) => authService.verifyPassword(pass),
+      );
+      if (!context.mounted) return;
+      if (ok) open();
+    }
+
     final tiles = <_Tile>[
       _Tile(
-        icon: Icons.point_of_sale, // ✅ general sales / counter billing
+        icon: Icons.point_of_sale,
         title: "Sales",
         subtitle: "Create invoices",
         color: Colors.blue,
@@ -52,7 +48,7 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       _Tile(
-        icon: Icons.restaurant, // ✅ dine-in
+        icon: Icons.restaurant,
         title: "Dine In",
         subtitle: "Create invoices",
         color: Colors.blue,
@@ -64,7 +60,7 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       _Tile(
-        icon: Icons.delivery_dining, // ✅ delivery
+        icon: Icons.delivery_dining,
         title: "Delivery",
         subtitle: "Create invoices",
         color: Colors.blue,
@@ -76,7 +72,7 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       _Tile(
-        icon: Icons.takeout_dining, // ✅ takeaway / parcel
+        icon: Icons.takeout_dining,
         title: "Take Away",
         subtitle: "Create invoices",
         color: Colors.blue,
@@ -88,7 +84,7 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       _Tile(
-        icon: Icons.shopping_bag, // ✅ self / pickup by customer / bag
+        icon: Icons.shopping_bag,
         title: "Self",
         subtitle: "Create invoices",
         color: Colors.blue,
@@ -99,7 +95,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-
       _Tile(
         icon: Icons.assignment_return,
         title: "Sale Returns",
@@ -110,16 +105,21 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const SaleReturnsScreen()),
         ),
       ),
+
+      // ✅ LOCKED (ask password)
       _Tile(
         icon: Icons.shopping_cart_checkout,
         title: "Purchases",
         subtitle: "Supplier bills",
         color: Colors.blue,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PurchasesScreen()),
-        ),
+        onTap: () => guardedOpen(() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PurchasesScreen()),
+          );
+        }),
       ),
+
       _Tile(
         icon: Icons.assignment_return_outlined,
         title: "Purchase Claim",
@@ -130,6 +130,7 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const PurchaseClaimsScreen()),
         ),
       ),
+
       _Tile(
         icon: Icons.inventory_2,
         title: "Products",
@@ -140,111 +141,92 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const ProductsScreen()),
         ),
       ),
+
+      // ✅ LOCKED
       _Tile(
         icon: Icons.warehouse,
         title: "Stocks",
         subtitle: "On-hand by branch",
         color: Colors.red,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const StockScreen()),
-        ),
+        onTap: () => guardedOpen(() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StockScreen()),
+          );
+        }),
       ),
 
-      // _Tile(
-      //   icon: Icons.receipt_long_rounded,
-      //   title: "Cash Book",
-      //   subtitle: "Receipts • Payments • Expenses",
-      //   color: Colors.teal,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const ReportCashbookScreen()),
-      //   ),
-      // ),
-
-      // _Tile(
-      //   icon: Icons.receipt_long_rounded,
-      //   title: "Accounts",
-      //   subtitle: "ASSET • Libilities • Expenses",
-      //   color: Colors.teal,
-      //   onTap: () => Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (_) => const AccountsScreen()),
-      //   ),
-      // ),
+      // ✅ LOCKED
       _Tile(
         icon: Icons.people,
         title: "Customers",
         subtitle: "CRM basics",
         color: Colors.orange,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CustomersScreen()),
-        ),
+        onTap: () => guardedOpen(() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CustomersScreen()),
+          );
+        }),
       ),
+
+      // ✅ LOCKED
       _Tile(
         icon: Icons.groups_2,
         title: "Vendors",
         subtitle: "Supplier list",
         color: Colors.orange,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const VendorsScreen()),
-        ),
+        onTap: () => guardedOpen(() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const VendorsScreen()),
+          );
+        }),
       ),
+
+      // ✅ LOCKED
       _Tile(
         icon: Icons.groups_2,
         title: "Users",
         subtitle: "App Users / Salesmen",
         color: Colors.orange,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const UsersScreen()),
-        ),
+        onTap: () => guardedOpen(() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const UsersScreen()),
+          );
+        }),
       ),
+
+      // ✅ LOCKED
       _Tile(
         icon: Icons.bar_chart,
         title: "Reports",
         subtitle: "Analytics & KPIs",
         color: Colors.purple,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ReportsHubScreen()),
-        ),
+        onTap: () => guardedOpen(() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ReportsHubScreen()),
+          );
+        }),
       ),
-      // _Tile(
-      //   icon: Icons.settings,
-      //   title: "Settings",
-      //   subtitle: "Configuration",
-      //   color: Colors.blueGrey,
-      //   onTap: () {}, // hook up later
-      // ),
     ];
 
-    // Responsive columns
     final width = MediaQuery.of(context).size.width;
     final cols = width >= 1100
         ? 5
         : width >= 900
-        ? 4
-        : width >= 600
-        ? 3
-        : 2;
+            ? 4
+            : width >= 600
+                ? 3
+                : 2;
 
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         title: const Text("POS"),
         actions: [
-          // Padding(
-          //   padding: const EdgeInsets.only(right: 8.0),
-          //   child: ActionChip(
-          //     label: Text(bp.label, style: const TextStyle(color: Colors.white)),
-          //     avatar: const Icon(Icons.warehouse_outlined, color: Colors.white, size: 18),
-          //     backgroundColor: Colors.blueGrey,
-          //     onPressed: () => _openBranchSheet(context), // Home can change
-          //   ),
-          // ),
           IconButton(
             tooltip: "Logout",
             icon: const Icon(Icons.logout),
@@ -261,7 +243,6 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Welcome banner
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -285,7 +266,7 @@ class HomeScreen extends StatelessWidget {
                   radius: 26,
                   backgroundColor: Colors.white,
                   child: Text(
-                    auth.user?['name'] != null
+                    (auth.user?['name']?.toString().isNotEmpty ?? false)
                         ? auth.user!['name'][0].toUpperCase()
                         : "?",
                     style: TextStyle(
@@ -305,7 +286,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(color: Colors.white70),
                       ),
                       Text(
-                        auth.user?['name'] ?? "User",
+                        auth.user?['name']?.toString() ?? "User",
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -323,18 +304,10 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                // TextButton.icon(
-                //   onPressed: () => _openBranchSheet(context),
-                //   icon: const Icon(Icons.swap_horiz, color: Colors.white),
-                //   label: const Text("Change Branch", style: TextStyle(color: Colors.white)),
-                // ),
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
-          // Grid
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -354,6 +327,93 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<bool> showPasswordModalAndVerify({
+  required BuildContext context,
+  required Future<bool> Function(String password) verify,
+}) async {
+  final ctrl = TextEditingController();
+  bool posting = false;
+  String? err;
+
+  final ok =
+      await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dlgCtx) {
+          return StatefulBuilder(
+            builder: (ctx, setLocal) {
+              Future<void> submit() async {
+                final pass = ctrl.text.trim();
+                if (pass.isEmpty) {
+                  setLocal(() => err = "Password is required");
+                  return;
+                }
+                setLocal(() {
+                  posting = true;
+                  err = null;
+                });
+                try {
+                  final verified = await verify(pass);
+                  if (!verified) {
+                    setLocal(() {
+                      posting = false;
+                      err = "Wrong password";
+                    });
+                    return;
+                  }
+                  Navigator.pop(dlgCtx, true);
+                } catch (e) {
+                  setLocal(() {
+                    posting = false;
+                    err = e.toString();
+                  });
+                }
+              }
+
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                title: const Text("Enter Password"),
+                content: TextField(
+                  controller: ctrl,
+                  obscureText: true,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    errorText: err,
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
+                  ),
+                  onSubmitted: (_) => submit(),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed:
+                        posting ? null : () => Navigator.pop(dlgCtx, false),
+                    child: const Text("Cancel"),
+                  ),
+                  FilledButton(
+                    onPressed: posting ? null : submit,
+                    child: posting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text("Continue"),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ) ??
+      false;
+
+  return ok;
 }
 
 class _Tile {
@@ -406,7 +466,6 @@ class _DashboardCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon in a soft circle
               Container(
                 width: 46,
                 height: 46,

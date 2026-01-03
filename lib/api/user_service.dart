@@ -9,13 +9,15 @@ class UsersService {
     int page = 1,
     int perPage = 20,
     String? search,
+    String? role,
     String? branchId,
   }) async {
     final query = {
       "page": page.toString(),
       "per_page": perPage.toString(),
       if (search != null && search.isNotEmpty) "search": search,
-      if (branchId != null) "branch_id": branchId.toString(),
+      if (role != null && role.isNotEmpty) "role": role,
+      // if (branchId != null) "branch_id": branchId.toString(),
     };
 
     final res = await _client.get("/users", query: query);
@@ -63,4 +65,5 @@ class UsersService {
       throw Exception(res["message"] ?? "Failed to sync user roles");
     }
   }
+
 }

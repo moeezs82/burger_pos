@@ -306,6 +306,22 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
   /* ====================== Build ====================== */
 
+  String getSaleTitle(sale_type) {
+    final t = (sale_type ?? '').toLowerCase();
+    switch (t) {
+      case 'dine_in':
+        return 'Dine In';
+      case 'delivery':
+        return 'Delivery';
+      case 'takeaway':
+        return 'Take Away';
+      case 'self':
+        return 'Self';
+      default:
+        return 'Sales';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final payments = (_sale?['payments'] as List?) ?? [];
@@ -360,6 +376,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                           children: [
                             Text(
                               "Date: ${_sale!['created_at'].toString().substring(0, 10)}",
+                            ),
+                            Text(
+                              "Sale Type: ${getSaleTitle(_sale!['sale_type'])}",
                             ),
                             Text(
                               "Customer: ${_sale!['customer']?['first_name'] ?? "Walk-in"} ${_sale!['customer']?['last_name'] ?? ""}",

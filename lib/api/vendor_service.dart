@@ -16,7 +16,6 @@ class VendorService {
       "page": page.toString(),
       if (search != null && search.isNotEmpty) 'search': search,
       if (includeBalance) 'include_balance': '1',
-      if (branchId != null) 'branch_id': '$branchId',
     };
 
     final res = await _client.get("/vendors", query: queryParams);
@@ -70,9 +69,8 @@ class VendorService {
     required int id,
     int? branchId,
   }) async {
-    final params = {if (branchId != null) 'branch_id': '$branchId'};
     // GET /api/vendors/{id}?branch_id=..&invoice_limit=..&receipt_limit=..
-    final res = await _client.get('/vendors/$id', query: params);
+    final res = await _client.get('/vendors/$id');
     return res; // expects { data: { vendor:{..}, ar:{..}, aging:{..}, recent:{open_invoices:[], receipts:[]} } }
   }
 
@@ -85,7 +83,6 @@ class VendorService {
     final params = {
       'page': '$page',
       'per_page': '$perPage',
-      if (branchId != null) 'branch_id': '$branchId',
     };
     return await _client.get('/vendors/$id/purchases', query: params);
   }
@@ -99,7 +96,6 @@ class VendorService {
     final params = {
       'page': '$page',
       'per_page': '$perPage',
-      if (branchId != null) 'branch_id': '$branchId',
     };
     return await _client.get('/vendors/$id/payments', query: params);
   }
@@ -115,7 +111,6 @@ class VendorService {
       "amount": amount,
       "method": method,
       if (reference != null && reference.isNotEmpty) "reference": reference,
-      if (branchId != null) "branch_id": branchId,
     };
     return await _client.post('/vendors/$vendorId/payments', body: params);
   }
@@ -133,7 +128,6 @@ class VendorService {
     final params = {
       'page': '$page',
       'per_page': '$perPage',
-      if (branchId != null) 'branch_id': '$branchId',
       if (from != null) 'from': from,
       if (to != null) 'to': to,
     };

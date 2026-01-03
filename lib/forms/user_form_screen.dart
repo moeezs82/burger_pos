@@ -65,7 +65,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
 
   Future<void> _loadRoles() async {
     try {
-      final res = await _rolesApi.getRoles(page: 1, perPage: 200);
+      final res = await _rolesApi.getRoles(page: 1, perPage: 200, search: 'delivery');
       // ApiResponse::success => {'success':true,'data': {pagination}}
       final data = res['data'] as Map<String, dynamic>;
       final items = (data['data'] as List).cast<Map<String, dynamic>>();
@@ -747,49 +747,49 @@ class _UserFormScreenState extends State<UserFormScreen> {
                                   ),
                                 ),
                                 const Spacer(),
-                                Tooltip(
-                                  message:
-                                      'Selected: ${_pickedRoles.length} role(s)',
-                                  child: Chip(
-                                    label: Text(
-                                      '${_pickedRoles.length} selected',
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                OutlinedButton.icon(
-                                  onPressed: _creatingRole
-                                      ? null
-                                      : _openCreateRoleDialog, // 👈 NEW
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('New role'),
-                                  style: OutlinedButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                  ),
-                                ),
+                                // Tooltip(
+                                //   message:
+                                //       'Selected: ${_pickedRoles.length} role(s)',
+                                //   child: Chip(
+                                //     label: Text(
+                                //       '${_pickedRoles.length} selected',
+                                //     ),
+                                //     visualDensity: VisualDensity.compact,
+                                //   ),
+                                // ),
+                                // const SizedBox(width: 8),
+                                // OutlinedButton.icon(
+                                //   onPressed: _creatingRole
+                                //       ? null
+                                //       : _openCreateRoleDialog, // 👈 NEW
+                                //   icon: const Icon(Icons.add, size: 18),
+                                //   label: const Text('New role'),
+                                //   style: OutlinedButton.styleFrom(
+                                //     visualDensity: VisualDensity.compact,
+                                //     padding: const EdgeInsets.symmetric(
+                                //       horizontal: 10,
+                                //       vertical: 8,
+                                //     ),
+                                //   ),
+                                // ),
                               ],
                             ),
                             const SizedBox(height: 12),
 
                             // role search
-                            TextField(
-                              controller: _roleSearch,
-                              decoration: InputDecoration(
-                                hintText: "Search role or permission...",
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                isDense: true,
-                              ),
-                              onChanged: (v) => setState(() => _roleQuery = v),
-                            ),
-                            const SizedBox(height: 12),
+                            // TextField(
+                            //   controller: _roleSearch,
+                            //   decoration: InputDecoration(
+                            //     hintText: "Search role or permission...",
+                            //     prefixIcon: const Icon(Icons.search),
+                            //     border: OutlineInputBorder(
+                            //       borderRadius: BorderRadius.circular(10),
+                            //     ),
+                            //     isDense: true,
+                            //   ),
+                            //   onChanged: (v) => setState(() => _roleQuery = v),
+                            // ),
+                            // const SizedBox(height: 12),
 
                             // list of role cards
                             if (_filteredRoles.isEmpty)
@@ -960,7 +960,8 @@ class _RoleCardState extends State<_RoleCard> {
                     ),
                   ),
                 ),
-                if (widget.onEdit != null || widget.onDelete != null)
+                if (false)
+                // if (widget.onEdit != null || widget.onDelete != null)
                   PopupMenuButton<String>(
                     tooltip: 'Manage role',
                     onSelected: (value) {

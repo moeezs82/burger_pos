@@ -8,7 +8,7 @@ class RolesService {
   Future<Map<String, dynamic>> getRoles({
     int page = 1,
     int perPage = 50,
-    String? search,
+    String? search
   }) async {
     final query = {
       "page": page.toString(),

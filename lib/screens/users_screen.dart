@@ -2,6 +2,7 @@ import 'package:enterprise_pos/api/user_service.dart';
 import 'package:enterprise_pos/forms/user_form_screen.dart';
 import 'package:enterprise_pos/providers/auth_provider.dart';
 import 'package:enterprise_pos/providers/branch_provider.dart';
+import 'package:enterprise_pos/screens/delivery_boy_edit_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -39,15 +40,20 @@ class _UsersScreenState extends State<UsersScreen> {
     }
 
     try {
-      final branchId = context.read<BranchProvider?>()?.selectedBranchId?.toString();
+      final branchId = context
+          .read<BranchProvider?>()
+          ?.selectedBranchId
+          ?.toString();
       final data = await _usersService.getUsers(
         page: _page,
         search: _search,
         branchId: branchId,
+        role: 'delivery',
       );
 
       // 👇 adjust according to your backend pagination structure
-      final pageData = data['data']; // ApiResponse::success returns {'data': pagination}
+      final pageData =
+          data['data']; // ApiResponse::success returns {'data': pagination}
       _users
         ..clear()
         ..addAll((pageData['data'] as List).cast<Map<String, dynamic>>());
@@ -79,9 +85,9 @@ class _UsersScreenState extends State<UsersScreen> {
         const SnackBar(content: Text("User deleted successfully")),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to delete user: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to delete user: $e")));
     }
   }
 
@@ -175,91 +181,154 @@ class _UsersScreenState extends State<UsersScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _users.isEmpty
-                        ? ListView(
-                            children: const [
-                              SizedBox(height: 120),
-                              Icon(Icons.person_outline, size: 64, color: Colors.grey),
-                              SizedBox(height: 12),
-                              Center(child: Text("No users found", style: TextStyle(color: Colors.grey))),
-                            ],
-                          )
-                        : ListView.builder(
-                            itemCount: _users.length,
-                            itemBuilder: (context, index) {
-                              final u = _users[index];
-                              final name = u['name'] ?? '—';
-                              final email = u['email'] ?? '—';
-                              final phone = u['phone'] ?? '—';
-                              final isActive = (u['is_active'] == true) || (u['is_active'] == 1);
-                              final roles = ((u['roles'] as List?) ?? [])
-                                  .map((e) => (e is String) ? e : (e['name'] ?? ''))
-                                  .where((s) => s.toString().isNotEmpty)
-                                  .join(', ');
+                    ? ListView(
+                        children: const [
+                          SizedBox(height: 120),
+                          Icon(
+                            Icons.person_outline,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 12),
+                          Center(
+                            child: Text(
+                              "No users found",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.builder(
+                        itemCount: _users.length,
+                        itemBuilder: (context, index) {
+                          final u = _users[index];
+                          final name = u['name'] ?? '—';
+                          final email = u['email'] ?? '—';
+                          final phone = u['phone'] ?? '—';
+                          final isActive =
+                              (u['is_active'] == true) || (u['is_active'] == 1);
+                          final roles = ((u['roles'] as List?) ?? [])
+                              .map((e) => (e is String) ? e : (e['name'] ?? ''))
+                              .where((s) => s.toString().isNotEmpty)
+                              .join(', ');
 
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 6),
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: theme.colorScheme.primaryContainer,
-                                    child: Text(
-                                      name.isNotEmpty ? name[0].toUpperCase() : "?",
-                                      style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              // ✅ Tap anywhere on the card to open DeliveryBoyEditScreen
+                              onTap: () async {
+                                final id = (u['id'] as num?)?.toInt();
+                                if (id == null) return;
+
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => DeliveryBoyEditScreen(
+                                      deliveryBoyId: id,
                                     ),
                                   ),
-                                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text(
-                                    "Phone: $phone | Email: $email\nRoles: $roles | Status: ${isActive ? 'active' : 'inactive'}",
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  trailing: SizedBox(
-                                    width: 70,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        GestureDetector(
-                                          child: Icon(Icons.edit, size: 20, color: theme.colorScheme.primary),
-                                          onTap: () async {
-                                            final result = await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(builder: (_) => UserFormScreen(user: u)),
-                                            );
-                                            if (result == true) _fetchUsers(reset: true);
-                                          },
-                                        ),
-                                        const SizedBox(width: 12),
-                                        GestureDetector(
-                                          child: const Icon(Icons.delete, size: 20, color: Colors.red),
-                                          onTap: () async {
-                                            final confirm = await showDialog<bool>(
-                                              context: context,
-                                              builder: (ctx) => AlertDialog(
-                                                title: const Text("Delete User"),
-                                                content: Text("Are you sure you want to delete '$name'?"),
-                                                actions: [
-                                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(ctx, true),
-                                                    child: const Text("Delete", style: TextStyle(color: Colors.red)),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                            if (confirm == true) {
-                                              await _deleteUser(u['id'] as int);
-                                              _fetchUsers(reset: true);
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
+                                );
+                              },
+
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    theme.colorScheme.primaryContainer,
+                                child: Text(
+                                  name.isNotEmpty ? name[0].toUpperCase() : "?",
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onPrimaryContainer,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                              title: Text(
+                                name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                "Phone: $phone | Email: $email\nRoles: $roles | Status: ${isActive ? 'active' : 'inactive'}",
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: SizedBox(
+                                width: 70,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    GestureDetector(
+                                      child: Icon(
+                                        Icons.edit,
+                                        size: 20,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      onTap: () async {
+                                        // ✅ prevent tile onTap from also firing
+                                        // (GestureDetector doesn't stop propagation reliably)
+                                        // so wrap icons with InkWell + onTap and set tile enabled?:
+                                        // easiest fix: use InkWell with `onTap` and `behavior`.
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                UserFormScreen(user: u),
+                                          ),
+                                        );
+                                        if (result == true)
+                                          _fetchUsers(reset: true);
+                                      },
+                                    ),
+                                    const SizedBox(width: 12),
+                                    GestureDetector(
+                                      child: const Icon(
+                                        Icons.delete,
+                                        size: 20,
+                                        color: Colors.red,
+                                      ),
+                                      onTap: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text("Delete User"),
+                                            content: Text(
+                                              "Are you sure you want to delete '$name'?",
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                child: const Text("Cancel"),
+                                              ),
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                child: const Text(
+                                                  "Delete",
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await _deleteUser(u['id'] as int);
+                                          _fetchUsers(reset: true);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ],

@@ -32,4 +32,14 @@ class AuthService {
   Future<Map<String, dynamic>> me() async {
     return await _client.get("/me");
   }
+  Future<bool> verifyPassword(String password) async {
+    final res = await _client.post("/auth/verify-password", body: {
+      "password": password,
+    });
+
+    if (res["success"] == true) {
+      return res["data"]?["ok"] == true;
+    }
+    throw Exception(res["message"] ?? "Password verify failed");
+  }
 }
