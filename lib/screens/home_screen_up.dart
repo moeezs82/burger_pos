@@ -47,7 +47,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Text("Enterprise POS"),
+        title: const Text("Counter IQ"),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 6),

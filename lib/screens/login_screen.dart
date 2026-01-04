@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         size: 64, color: theme.colorScheme.primary),
                     const SizedBox(height: 16),
                     Text(
-                      "Enterprise POS Login",
+                      "Counter IQ Login",
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.onSurface,

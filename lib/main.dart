@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Enterprise POS',
+        title: 'Counter IQ',
         theme: ThemeData(primarySwatch: Colors.blue),
         home: Consumer<AuthProvider>(
           builder: (ctx, auth, _) =>
