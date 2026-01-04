@@ -1,4 +1,4 @@
-import 'package:enterprise_pos/providers/branch_provider.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

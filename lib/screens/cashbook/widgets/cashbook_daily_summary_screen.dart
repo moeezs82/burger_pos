@@ -1,4 +1,4 @@
-import 'package:enterprise_pos/screens/cashbook/widgets/daybook_day_details_screen.dart';
+import 'package:counter_iq/screens/cashbook/widgets/daybook_day_details_screen.dart';
 import 'package:flutter/material.dart';
 
 import 'cb_daily_list.dart';

@@ -1,7 +1,7 @@
-import 'package:enterprise_pos/api/user_service.dart';
-import 'package:enterprise_pos/api/role_service.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/providers/branch_provider.dart';
+import 'package:counter_iq/api/user_service.dart';
+import 'package:counter_iq/api/role_service.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

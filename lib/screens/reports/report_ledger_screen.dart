@@ -1,9 +1,9 @@
 // lib/screens/reports/report_ledger_screen.dart
-import 'package:enterprise_pos/api/reports_service.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/providers/branch_provider.dart';
-import 'package:enterprise_pos/widgets/customer_picker_sheet.dart';
-import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
+import 'package:counter_iq/api/reports_service.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
+import 'package:counter_iq/widgets/customer_picker_sheet.dart';
+import 'package:counter_iq/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';

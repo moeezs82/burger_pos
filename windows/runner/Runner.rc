@@ -94,7 +94,7 @@ BEGIN
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "Enterprise POS" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 moeez. All rights reserved." "\0"
-            VALUE "OriginalFilename", "enterprise_pos.exe" "\0"
+            VALUE "OriginalFilename", "counter_iq.exe" "\0"
             VALUE "ProductName", "Enterprise POS" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

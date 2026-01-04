@@ -1,8 +1,8 @@
-import 'package:enterprise_pos/api/user_service.dart';
-import 'package:enterprise_pos/forms/user_form_screen.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/providers/branch_provider.dart';
-import 'package:enterprise_pos/screens/delivery_boy_edit_screen.dart';
+import 'package:counter_iq/api/user_service.dart';
+import 'package:counter_iq/forms/user_form_screen.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
+import 'package:counter_iq/screens/delivery_boy_edit_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

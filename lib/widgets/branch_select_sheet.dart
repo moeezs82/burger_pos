@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:enterprise_pos/api/common_service.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/providers/branch_provider.dart';
+import 'package:counter_iq/api/common_service.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

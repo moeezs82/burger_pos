@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:enterprise_pos/api/vendor_service.dart';
-import 'package:enterprise_pos/forms/vendor_form_screen.dart';
+import 'package:counter_iq/api/vendor_service.dart';
+import 'package:counter_iq/forms/vendor_form_screen.dart';
 import 'package:flutter/material.dart';
 
 class VendorPickerSheet extends StatefulWidget {

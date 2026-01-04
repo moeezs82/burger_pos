@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:enterprise_pos/api/core/api_client.dart';
+import 'package:counter_iq/api/core/api_client.dart';
 import 'package:http/http.dart' as http;
 
 class ProductService {

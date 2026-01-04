@@ -1,8 +1,8 @@
-import 'package:enterprise_pos/api/purchase_service.dart';
-import 'package:enterprise_pos/api/core/api_client.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/screens/purchases/purchase_items_section.dart';
-import 'package:enterprise_pos/widgets/product_picker_sheet.dart';
+import 'package:counter_iq/api/purchase_service.dart';
+import 'package:counter_iq/api/core/api_client.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/screens/purchases/purchase_items_section.dart';
+import 'package:counter_iq/widgets/product_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

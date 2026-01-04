@@ -1,17 +1,17 @@
-import 'package:enterprise_pos/api/core/api_client.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/widgets/product_picker_sheet.dart';
-import 'package:enterprise_pos/widgets/user_picker_sheet.dart';
-import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
+import 'package:counter_iq/api/core/api_client.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/widgets/product_picker_sheet.dart';
+import 'package:counter_iq/widgets/user_picker_sheet.dart';
+import 'package:counter_iq/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:enterprise_pos/services/thermal_printer_service.dart';
-import 'package:enterprise_pos/services/receipt_preview_service.dart';
+import 'package:counter_iq/services/thermal_printer_service.dart';
+import 'package:counter_iq/services/receipt_preview_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 
 // parts
-import 'package:enterprise_pos/screens/sales/parts/sale_items_section.dart';
-import 'package:enterprise_pos/screens/sales/parts/sale_totals_editable.dart';
+import 'package:counter_iq/screens/sales/parts/sale_items_section.dart';
+import 'package:counter_iq/screens/sales/parts/sale_totals_editable.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final int saleId;

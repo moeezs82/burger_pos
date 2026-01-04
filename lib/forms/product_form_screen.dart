@@ -2,9 +2,9 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:enterprise_pos/api/common_service.dart';
-import 'package:enterprise_pos/api/product_service.dart';
-import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
+import 'package:counter_iq/api/common_service.dart';
+import 'package:counter_iq/api/product_service.dart';
+import 'package:counter_iq/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';

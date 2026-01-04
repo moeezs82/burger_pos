@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:enterprise_pos/services/thermal_printer_service.dart';
+import 'package:counter_iq/services/thermal_printer_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;

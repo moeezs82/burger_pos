@@ -1,23 +1,23 @@
-import 'package:enterprise_pos/api/product_service.dart';
-import 'package:enterprise_pos/api/sale_service.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/providers/branch_provider.dart';
-import 'package:enterprise_pos/screens/sales/parts/create_sale_items_section.dart';
-import 'package:enterprise_pos/services/thermal_printer_service.dart';
-import 'package:enterprise_pos/services/receipt_preview_service.dart';
-import 'package:enterprise_pos/widgets/product_picker_grid_sheet.dart';
-import 'package:enterprise_pos/widgets/product_picker_sheet.dart';
-import 'package:enterprise_pos/widgets/customer_picker_sheet.dart';
-import 'package:enterprise_pos/widgets/user_picker_sheet.dart';
-import 'package:enterprise_pos/widgets/vendor_picker_sheet.dart';
+import 'package:counter_iq/api/product_service.dart';
+import 'package:counter_iq/api/sale_service.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
+import 'package:counter_iq/screens/sales/parts/create_sale_items_section.dart';
+import 'package:counter_iq/services/thermal_printer_service.dart';
+import 'package:counter_iq/services/receipt_preview_service.dart';
+import 'package:counter_iq/widgets/product_picker_grid_sheet.dart';
+import 'package:counter_iq/widgets/product_picker_sheet.dart';
+import 'package:counter_iq/widgets/customer_picker_sheet.dart';
+import 'package:counter_iq/widgets/user_picker_sheet.dart';
+import 'package:counter_iq/widgets/vendor_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 // local widgets split into small files
-import 'package:enterprise_pos/screens/sales/parts/sale_party_section.dart';
-import 'package:enterprise_pos/screens/sales/parts/sale_items_payments.dart';
-import 'package:enterprise_pos/screens/sales/parts/sale_totals_card.dart';
+import 'package:counter_iq/screens/sales/parts/sale_party_section.dart';
+import 'package:counter_iq/screens/sales/parts/sale_items_payments.dart';
+import 'package:counter_iq/screens/sales/parts/sale_totals_card.dart';
 
 class CreateSaleScreen extends StatefulWidget {
   final String? sale_type;

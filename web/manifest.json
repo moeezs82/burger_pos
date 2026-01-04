@@ -1,6 +1,6 @@
 {
-    "name": "enterprise_pos",
-    "short_name": "enterprise_pos",
+    "name": "counter_iq",
+    "short_name": "counter_iq",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

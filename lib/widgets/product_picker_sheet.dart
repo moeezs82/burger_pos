@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:enterprise_pos/api/product_service.dart';
-import 'package:enterprise_pos/forms/product_form_screen.dart';
+import 'package:counter_iq/api/product_service.dart';
+import 'package:counter_iq/forms/product_form_screen.dart';
 import 'package:flutter/material.dart';
 
 class ProductPickerSheet extends StatefulWidget {

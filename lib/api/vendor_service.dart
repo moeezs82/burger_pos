@@ -1,4 +1,4 @@
-import 'package:enterprise_pos/api/core/api_client.dart';
+import 'package:counter_iq/api/core/api_client.dart';
 
 class VendorService {
   final ApiClient _client;

@@ -1,7 +1,7 @@
 import 'dart:ui';
-import 'package:enterprise_pos/api/reports_service.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
-import 'package:enterprise_pos/widgets/product_picker_sheet.dart';
+import 'package:counter_iq/api/reports_service.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/widgets/product_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';

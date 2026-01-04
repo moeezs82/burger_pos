@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:enterprise_pos/api/core/api_client.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
+import 'package:counter_iq/api/core/api_client.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';

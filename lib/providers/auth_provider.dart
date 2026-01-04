@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:enterprise_pos/api/auth_service.dart';
+import 'package:counter_iq/api/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

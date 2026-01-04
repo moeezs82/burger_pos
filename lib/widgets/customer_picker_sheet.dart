@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:enterprise_pos/api/customer_service.dart';
-import 'package:enterprise_pos/forms/customer_form_screen.dart';
+import 'package:counter_iq/api/customer_service.dart';
+import 'package:counter_iq/forms/customer_form_screen.dart';
 import 'package:flutter/material.dart';
 
 class CustomerPickerSheet extends StatefulWidget {

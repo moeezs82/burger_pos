@@ -1,7 +1,7 @@
-import 'package:enterprise_pos/api/vendor_service.dart';
-import 'package:enterprise_pos/providers/branch_provider.dart';
-import 'package:enterprise_pos/screens/vendors/vendor_edit_screen.dart';
-import 'package:enterprise_pos/widgets/branch_indicator.dart';
+import 'package:counter_iq/api/vendor_service.dart';
+import 'package:counter_iq/providers/branch_provider.dart';
+import 'package:counter_iq/screens/vendors/vendor_edit_screen.dart';
+import 'package:counter_iq/widgets/branch_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';

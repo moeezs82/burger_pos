@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:enterprise_pos/api/core/api_client.dart';
+import 'package:counter_iq/api/core/api_client.dart';
 typedef ExpenseLine = Map<String, Object?>;
 
 class CashBookService {

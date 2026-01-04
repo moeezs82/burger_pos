@@ -1,5 +1,5 @@
-import 'package:enterprise_pos/api/customer_service.dart';
-import 'package:enterprise_pos/providers/auth_provider.dart';
+import 'package:counter_iq/api/customer_service.dart';
+import 'package:counter_iq/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

@@ -1,10 +1,10 @@
-import 'package:enterprise_pos/screens/cashbook/widgets/cashbook_daily_summary_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_cashbook_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_daily_summary_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_ledger_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_pnl_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_stock_movement_screen.dart';
-import 'package:enterprise_pos/screens/reports/report_top_bottom_products_screen.dart';
+import 'package:counter_iq/screens/cashbook/widgets/cashbook_daily_summary_screen.dart';
+import 'package:counter_iq/screens/reports/report_cashbook_screen.dart';
+import 'package:counter_iq/screens/reports/report_daily_summary_screen.dart';
+import 'package:counter_iq/screens/reports/report_ledger_screen.dart';
+import 'package:counter_iq/screens/reports/report_pnl_screen.dart';
+import 'package:counter_iq/screens/reports/report_stock_movement_screen.dart';
+import 'package:counter_iq/screens/reports/report_top_bottom_products_screen.dart';
 import 'package:flutter/material.dart';
 
 class ReportsHubScreen extends StatelessWidget {

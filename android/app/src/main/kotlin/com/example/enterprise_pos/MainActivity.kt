@@ -1,4 +1,4 @@
-package com.example.enterprise_pos
+package com.example.counter_iq
 
 import io.flutter.embedding.android.FlutterActivity
 

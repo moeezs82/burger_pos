@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:enterprise_pos/api/user_service.dart';
-import 'package:enterprise_pos/forms/user_form_screen.dart';
+import 'package:counter_iq/api/user_service.dart';
+import 'package:counter_iq/forms/user_form_screen.dart';
 import 'package:flutter/material.dart';
 
 class UserPickerSheet extends StatefulWidget {
