@@ -48,6 +48,14 @@ class _ItemsTableState extends State<ItemsTable> {
   void initState() {
     super.initState();
     _ensureRows();
+
+
+    // to auto open add items
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.items.isEmpty) {
+        widget.onAddItem(); // same as pressing the Add Item button
+      }
+    });
   }
 
   @override

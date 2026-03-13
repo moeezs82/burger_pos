@@ -382,7 +382,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         tax: tax,
         delivery: delivery,
         meta: meta,
-        sale_type: widget.sale_type
+        sale_type: widget.sale_type,
       );
 
       final changeAmount = (cashReceived - total)
@@ -412,9 +412,9 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
           const printerIp = "192.168.1.50";
           await ThermalPrinterService.instance.printSaleReceipt(
             printerIp: printerIp,
-            shopName: "MR HUNGRY",
-            shopAddress: "Mr Hungry Dhak Road Sukkur",
-            shopPhone: "+923021922516",
+            shopName: "Pizza 360",
+            shopAddress: "Pizza 360 Miani Road Sukkur",
+            shopPhone: "+923702183106",
             receiptNo: receiptNo,
             dateTime: DateTime.now(),
             items: receiptItems,
@@ -435,9 +435,9 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         }
       } else {
         await ReceiptPreviewService.instance.previewReceipt(
-          shopName: "MR HUNGRY",
-          shopAddress: "Mr Hungry Dhak Road Sukkur",
-          shopPhone: "+923021922516",
+          shopName: "Pizza 360",
+          shopAddress: "Pizza 360 Miani Road Sukkur",
+          shopPhone: "+923702183106",
           receiptNo: receiptNo,
           dateTime: DateTime.now(),
           items: receiptItems,
@@ -452,7 +452,14 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
       }
 
       if (!mounted) return;
-      Navigator.pop(context, true);
+      // Navigator.pop(context, true);
+      _resetSaleForm();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Sale created successfully. Receipt #: $receiptNo"),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -461,6 +468,50 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  void _resetSaleForm() {
+    // cancel any active focus first
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      // main sale data
+      _items = [];
+      _payments = [];
+
+      // optional auto cash flag stays as-is normally
+      // if you want to reset it too, uncomment:
+      // _autoCashIfEmpty = true;
+
+      // selected entities
+      _selectedCustomerId = null;
+      _selectedVendorId = null;
+      _selectedUserId = null;
+      _selectedDeliveryBoyId = null;
+
+      // keep branch from provider normally, so no need to force reset
+      // only clear local fallback if that matches your flow:
+      // _selectedBranchId = null;
+    });
+
+    // clear all input fields
+    customerNameController.clear();
+    customerPhoneController.clear();
+    addressController.clear();
+    discountController.clear();
+    cashReceivedController.clear();
+    taxController.clear();
+    deliveryController.clear();
+
+    // if you have any search/autocomplete controllers, clear them too
+    // customerSearchController.clear();
+    // vendorSearchController.clear();
+
+    // add a fresh first row again after rebuild
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _addItemManual();
+    });
   }
 
   Future<List<ProductRef>> _queryProducts(String q) async {
@@ -521,6 +572,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
     if (balance < 0) return Colors.orange;
     return Colors.green;
   }
+
   String get _saleTitle {
     final t = (widget.sale_type ?? '').toLowerCase();
     switch (t) {
@@ -661,14 +713,14 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
               const SizedBox(height: 12),
 
               // Scanner + Items
-              ScannerToggleButton(
-                enabled: _scannerEnabled,
-                onActivate: () {
-                  Future.delayed(const Duration(milliseconds: 50), () {
-                    _barcodeFocusNode.requestFocus();
-                  });
-                },
-              ),
+              // ScannerToggleButton(
+              //   enabled: _scannerEnabled,
+              //   onActivate: () {
+              //     Future.delayed(const Duration(milliseconds: 50), () {
+              //       _barcodeFocusNode.requestFocus();
+              //     });
+              //   },
+              // ),
               const SizedBox(height: 8),
               // --- FAST TABULAR ITEMS ---
               ItemsTable(

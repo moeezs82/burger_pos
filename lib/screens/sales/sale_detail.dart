@@ -271,9 +271,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
       await ThermalPrinterService.instance.printSaleReceipt(
         printerIp: printerIp,
-        shopName: "MR HUNGRY",
-        shopAddress: "Mr Hungry Dhak Road Sukkur",
-        shopPhone: "+923021922516",
+        shopName: "Pizza 360",
+        shopAddress: "Pizza 360 Miani Road Sukkur",
+        shopPhone: "+923702183106",
         receiptNo: receiptNo,
         dateTime: dateTime,
         items: receiptItems,
@@ -287,9 +287,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       );
     } else {
       await ReceiptPreviewService.instance.previewReceipt(
-        shopName: "MR HUNGRY",
-        shopAddress: "Mr Hungry Dhak Road Sukkur",
-        shopPhone: "+923021922516",
+        shopName: "Pizza 360",
+        shopAddress: "Pizza 360 Miani Road Sukkur",
+        shopPhone: "+923702183106",
         receiptNo: receiptNo,
         dateTime: dateTime,
         items: receiptItems,
