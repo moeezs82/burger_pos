@@ -13,6 +13,8 @@ import 'package:provider/provider.dart';
 import 'package:counter_iq/screens/sales/parts/sale_items_section.dart';
 import 'package:counter_iq/screens/sales/parts/sale_totals_editable.dart';
 
+import 'dart:io' show Platform;
+
 class SaleDetailScreen extends StatefulWidget {
   final int saleId;
   const SaleDetailScreen({super.key, required this.saleId});
@@ -260,31 +262,63 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       final qty = _d(m['quantity']);
       final lineTotal = _d(m['total']) != 0 ? _d(m['total']) : (price * qty);
 
-      return ReceiptItem(name: name, price: price, qty: qty, total: lineTotal);
+      return SaleReceiptItem(
+        name: name,
+        price: price,
+        qty: qty,
+        total: lineTotal,
+      );
     }).toList();
 
     // 🟡 set from your settings later
-    final hasPrinter = false;
+    final hasPrinter = true;
 
     if (!kIsWeb && hasPrinter) {
-      const printerIp = "192.168.1.50";
-
-      await ThermalPrinterService.instance.printSaleReceipt(
-        printerIp: printerIp,
-        shopName: "Pizza 360",
-        shopAddress: "Pizza 360 Miani Road Sukkur",
-        shopPhone: "+923702183106",
-        receiptNo: receiptNo,
-        dateTime: dateTime,
-        items: receiptItems,
-        subtotal: subtotal,
-        discount: discount,
-        tax: tax,
-        grandTotal: total,
-        cashReceived: cashReceived,
-        changeAmount: changeAmount,
-        meta: printMeta,
-      );
+      try {
+        if (Platform.isWindows) {
+          await ThermalPrinterService.instance.printSaleReceiptWindows(
+            printerName: 'BlackCopper 80mm Series(1)',
+            shopName: "Pizza 360",
+            shopAddress: "Pizza 360 Miani Road Sukkur",
+            shopPhone: "+923702183106",
+            receiptNo: receiptNo,
+            dateTime: DateTime.now(),
+            items: receiptItems,
+            subtotal: subtotal,
+            discount: discount,
+            tax: tax,
+            grandTotal: total,
+            cashReceived: cashReceived,
+            changeAmount: changeAmount,
+            meta: meta,
+          );
+        } else {
+          await ThermalPrinterService.instance.printSaleReceiptNetwork(
+            printerIp: "192.168.1.50",
+            shopName: "Pizza 360",
+            shopAddress: "Pizza 360 Miani Road Sukkur",
+            shopPhone: "+923702183106",
+            receiptNo: receiptNo,
+            dateTime: DateTime.now(),
+            items: receiptItems,
+            subtotal: subtotal,
+            discount: discount,
+            tax: tax,
+            grandTotal: total,
+            cashReceived: cashReceived,
+            changeAmount: changeAmount,
+            meta: meta,
+          );
+        }
+      } catch (e, s) {
+        debugPrint('PRINT ERROR: $e');
+        debugPrintStack(stackTrace: s);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Sale created but printing failed: $e")),
+          );
+        }
+      }
     } else {
       await ReceiptPreviewService.instance.previewReceipt(
         shopName: "Pizza 360",
@@ -300,7 +334,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         cashReceived: cashReceived,
         changeAmount: changeAmount,
         meta: printMeta,
-        logoAsset: 'assets/images/mr_hungry_logo.jpeg',
+        logoAsset: 'assets/images/logo.jpeg',
       );
     }
   }

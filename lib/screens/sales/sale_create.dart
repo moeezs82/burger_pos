@@ -19,6 +19,10 @@ import 'package:counter_iq/screens/sales/parts/sale_party_section.dart';
 import 'package:counter_iq/screens/sales/parts/sale_items_payments.dart';
 import 'package:counter_iq/screens/sales/parts/sale_totals_card.dart';
 
+import 'dart:io' show Platform;
+
+import 'package:windows_printer/windows_printer.dart';
+
 class CreateSaleScreen extends StatefulWidget {
   final String? sale_type;
   const CreateSaleScreen({super.key, this.sale_type});
@@ -399,7 +403,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         final qty = double.tryParse(i['quantity']?.toString() ?? '') ?? 0.0;
         final lineTotal =
             double.tryParse(i['total']?.toString() ?? '') ?? (price * qty);
-        return ReceiptItem(
+        return SaleReceiptItem(
           name: name,
           price: price,
           qty: qty,
@@ -407,26 +411,49 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
         );
       }).toList();
       final hasPrinter = false;
-      if (!kIsWeb && hasPrinter) {
+      final printers = await WindowsPrinter.getAvailablePrinters();
+      print("Available printers: $printers");
+      // if (!kIsWeb && hasPrinter) {
+      if (true) {
         try {
-          const printerIp = "192.168.1.50";
-          await ThermalPrinterService.instance.printSaleReceipt(
-            printerIp: printerIp,
-            shopName: "Pizza 360",
-            shopAddress: "Pizza 360 Miani Road Sukkur",
-            shopPhone: "+923702183106",
-            receiptNo: receiptNo,
-            dateTime: DateTime.now(),
-            items: receiptItems,
-            subtotal: subtotal,
-            discount: discount,
-            tax: tax,
-            grandTotal: total,
-            cashReceived: cashReceived,
-            changeAmount: changeAmount,
-            meta: meta,
-          );
-        } catch (e) {
+          if (Platform.isWindows) {
+            await ThermalPrinterService.instance.printSaleReceiptWindows(
+              printerName: 'BlackCopper 80mm Series(1)',
+              shopName: "Pizza 360",
+              shopAddress: "Pizza 360 Miani Road Sukkur",
+              shopPhone: "+923702183106",
+              receiptNo: receiptNo,
+              dateTime: DateTime.now(),
+              items: receiptItems,
+              subtotal: subtotal,
+              discount: discount,
+              tax: tax,
+              grandTotal: total,
+              cashReceived: cashReceived,
+              changeAmount: changeAmount,
+              meta: meta,
+            );
+          } else {
+            await ThermalPrinterService.instance.printSaleReceiptNetwork(
+              printerIp: "192.168.1.50",
+              shopName: "Pizza 360",
+              shopAddress: "Pizza 360 Miani Road Sukkur",
+              shopPhone: "+923702183106",
+              receiptNo: receiptNo,
+              dateTime: DateTime.now(),
+              items: receiptItems,
+              subtotal: subtotal,
+              discount: discount,
+              tax: tax,
+              grandTotal: total,
+              cashReceived: cashReceived,
+              changeAmount: changeAmount,
+              meta: meta,
+            );
+          }
+        } catch (e, s) {
+          debugPrint('PRINT ERROR: $e');
+          debugPrintStack(stackTrace: s);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Sale created but printing failed: $e")),

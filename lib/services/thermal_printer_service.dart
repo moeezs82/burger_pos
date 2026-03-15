@@ -1,32 +1,32 @@
+import 'dart:ffi';
+import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:esc_pos_printer_plus/esc_pos_printer_plus.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
+import 'package:win32/win32.dart';
 
 class ThermalPrinterService {
   ThermalPrinterService._();
   static final instance = ThermalPrinterService._();
 
   final PaperSize paperSize = PaperSize.mm80;
+  static const String defaultLogoAsset = "assets/images/logo.jpeg";
 
-  // ✅ Default logo like preview
-  static const String defaultLogoAsset = "assets/images/mr_hungry_logo.jpeg";
-
-  Future<void> printSaleReceipt({
-    required String printerIp,
-    int port = 9100,
+  Future<void> printSaleReceiptWindows({
+    required String printerName,
     required String shopName,
     String? shopAddress,
     String? shopPhone,
-
-    // ✅ logo support (same idea as preview)
     String? logoAsset,
     Uint8List? logoBytes,
-
     required String receiptNo,
     required DateTime dateTime,
-    required List<ReceiptItem> items,
+    required List<SaleReceiptItem> items,
     required double subtotal,
     required double discount,
     required double tax,
@@ -35,7 +35,105 @@ class ThermalPrinterService {
     required double changeAmount,
     Map<String, dynamic>? meta,
   }) async {
-    // --- extract meta safely ---
+    if (kIsWeb || !Platform.isWindows) {
+      throw Exception(
+        'Windows raw printing is only supported on Windows desktop.',
+      );
+    }
+
+    final bytes = await _buildSaleReceiptBytes(
+      shopName: shopName,
+      shopAddress: shopAddress,
+      shopPhone: shopPhone,
+      logoAsset: logoAsset,
+      logoBytes: logoBytes,
+      receiptNo: receiptNo,
+      dateTime: dateTime,
+      items: items,
+      subtotal: subtotal,
+      discount: discount,
+      tax: tax,
+      grandTotal: grandTotal,
+      cashReceived: cashReceived,
+      changeAmount: changeAmount,
+      meta: meta,
+    );
+
+    await _sendBytesToWindowsPrinter(
+      printerName: printerName,
+      bytes: Uint8List.fromList(bytes),
+    );
+  }
+
+  Future<void> printSaleReceiptNetwork({
+    required String printerIp,
+    int port = 9100,
+    required String shopName,
+    String? shopAddress,
+    String? shopPhone,
+    String? logoAsset,
+    Uint8List? logoBytes,
+    required String receiptNo,
+    required DateTime dateTime,
+    required List<SaleReceiptItem> items,
+    required double subtotal,
+    required double discount,
+    required double tax,
+    required double grandTotal,
+    required double cashReceived,
+    required double changeAmount,
+    Map<String, dynamic>? meta,
+  }) async {
+    final profile = await CapabilityProfile.load();
+    final printer = NetworkPrinter(paperSize, profile);
+
+    final res = await printer.connect(printerIp, port: port);
+    if (res != PosPrintResult.success) {
+      throw Exception("Printer connect failed: ${res.msg}");
+    }
+
+    try {
+      final bytes = await _buildSaleReceiptBytes(
+        shopName: shopName,
+        shopAddress: shopAddress,
+        shopPhone: shopPhone,
+        logoAsset: logoAsset,
+        logoBytes: logoBytes,
+        receiptNo: receiptNo,
+        dateTime: dateTime,
+        items: items,
+        subtotal: subtotal,
+        discount: discount,
+        tax: tax,
+        grandTotal: grandTotal,
+        cashReceived: cashReceived,
+        changeAmount: changeAmount,
+        meta: meta,
+      );
+
+      printer.rawBytes(bytes);
+    } finally {
+      printer.disconnect();
+    }
+  }
+
+  Future<List<int>> _buildSaleReceiptBytes({
+    required String shopName,
+    String? shopAddress,
+    String? shopPhone,
+    String? logoAsset,
+    Uint8List? logoBytes,
+    required String receiptNo,
+    required DateTime dateTime,
+    required List<SaleReceiptItem> items,
+    required double subtotal,
+    required double discount,
+    required double tax,
+    required double grandTotal,
+    required double cashReceived,
+    required double changeAmount,
+    Map<String, dynamic>? meta,
+  }) async {
     final snapRaw = meta?["customer_snapshot"];
     final snap = (snapRaw is Map)
         ? snapRaw.cast<String, dynamic>()
@@ -50,161 +148,277 @@ class ThermalPrinterService {
         : double.tryParse((meta?["delivery"] ?? "").toString()) ?? 0.0;
 
     final profile = await CapabilityProfile.load();
-    final printer = NetworkPrinter(paperSize, profile);
+    final generator = Generator(paperSize, profile);
+    final List<int> bytes = <int>[];
 
-    final res = await printer.connect(printerIp, port: port);
-    if (res != PosPrintResult.success) {
-      throw Exception("Printer connect failed: ${res.msg}");
+    void push(List<int> chunk) {
+      bytes.addAll(List<int>.from(chunk));
     }
 
-    // ✅ PRINT LOGO (like preview)
-    await _printLogo(
-      printer,
-      logoBytes: logoBytes,
-      logoAsset: logoAsset,
-    );
+    // TEMPORARILY DISABLED:
+    // imageRaster is the part crashing in esc_pos_utils_plus
+    // final logo = await _prepareLogo(
+    //   logoBytes: logoBytes,
+    //   logoAsset: logoAsset,
+    // );
+    //
+    // if (logo != null) {
+    //   push(generator.imageRaster(logo, align: PosAlign.center));
+    //   push(generator.feed(1));
+    // }
 
-    // ---- Header ----
-    printer.text(
-      shopName,
-      styles: const PosStyles(
-        align: PosAlign.center,
-        bold: true,
-        height: PosTextSize.size2,
-        width: PosTextSize.size2,
+    push(
+      generator.text(
+        shopName,
+        styles: const PosStyles(
+          align: PosAlign.center,
+          bold: true,
+          height: PosTextSize.size2,
+          width: PosTextSize.size2,
+        ),
+        linesAfter: 1,
       ),
-      linesAfter: 1,
     );
 
     if (shopAddress != null && shopAddress.trim().isNotEmpty) {
-      printer.text(shopAddress, styles: const PosStyles(align: PosAlign.center));
+      push(
+        generator.text(
+          shopAddress,
+          styles: const PosStyles(align: PosAlign.center),
+        ),
+      );
     }
+
     if (shopPhone != null && shopPhone.trim().isNotEmpty) {
-      printer.text(shopPhone, styles: const PosStyles(align: PosAlign.center));
+      push(
+        generator.text(
+          shopPhone,
+          styles: const PosStyles(align: PosAlign.center),
+        ),
+      );
     }
 
-    printer.hr();
+    push(generator.hr());
 
-    printer.text(
-      "Receipt# $receiptNo",
-      styles: const PosStyles(align: PosAlign.center, bold: true),
+    push(
+      generator.text(
+        "Receipt# $receiptNo",
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      ),
     );
 
-    final d = _formatDateTime(dateTime);
-    printer.text(
-      "Date : $d",
-      styles: const PosStyles(align: PosAlign.center),
-      linesAfter: 1,
+    push(
+      generator.text(
+        "Date : ${_formatDateTime(dateTime)}",
+        styles: const PosStyles(align: PosAlign.center),
+        linesAfter: 1,
+      ),
     );
 
-    printer.hr();
+    push(generator.hr());
 
-    // ---- Customer block (from meta) ----
     final hasCustomerInfo =
         cName.isNotEmpty || cPhone.isNotEmpty || cAddr.isNotEmpty;
 
     if (hasCustomerInfo) {
-      printer.text("Customer", styles: const PosStyles(bold: true));
-      if (cName.isNotEmpty) printer.text("Name: $cName");
-      if (cPhone.isNotEmpty) printer.text("Phone: $cPhone");
-      if (cAddr.isNotEmpty) printer.text("Address: $cAddr");
-      printer.hr();
+      push(generator.text("Customer", styles: const PosStyles(bold: true)));
+      if (cName.isNotEmpty) push(generator.text("Name: $cName"));
+      if (cPhone.isNotEmpty) push(generator.text("Phone: $cPhone"));
+      if (cAddr.isNotEmpty) push(generator.text("Address: $cAddr"));
+      push(generator.hr());
     }
 
-    // ---- Items table ----
-    printer.row([
-      PosColumn(text: "Name", width: 5, styles: const PosStyles(bold: true)),
-      PosColumn(
-        text: "Price",
-        width: 2,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
-      ),
-      PosColumn(
-        text: "Qty",
-        width: 2,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
-      ),
-      PosColumn(
-        text: "Total",
-        width: 3,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
-      ),
-    ]);
+    push(
+      generator.row([
+        PosColumn(text: "Name", width: 5, styles: const PosStyles(bold: true)),
+        PosColumn(
+          text: "| Price",
+          width: 2,
+          styles: const PosStyles(align: PosAlign.right, bold: true),
+        ),
+        PosColumn(
+          text: "| Qty",
+          width: 2,
+          styles: const PosStyles(align: PosAlign.right, bold: true),
+        ),
+        PosColumn(
+          text: "| Total",
+          width: 3,
+          styles: const PosStyles(align: PosAlign.right, bold: true),
+        ),
+      ]),
+    );
 
-    printer.hr();
+    push(generator.hr());
 
     for (final it in items) {
-      printer.text(it.name, styles: const PosStyles(bold: true));
-      printer.row([
-        PosColumn(text: "", width: 5),
-        PosColumn(
-          text: _money(it.price),
-          width: 2,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-        PosColumn(
-          text: _qty(it.qty),
-          width: 2,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-        PosColumn(
-          text: _money(it.total),
-          width: 3,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-      printer.feed(1);
+      push(
+        generator.row([
+          PosColumn(
+            text: it.name,
+            width: 5,
+            styles: const PosStyles(bold: true),
+          ),
+          PosColumn(
+            text: "| ${_money(it.price)}",
+            width: 2,
+            styles: const PosStyles(align: PosAlign.right),
+          ),
+          PosColumn(
+            text: "| ${_qty(it.qty)}",
+            width: 2,
+            styles: const PosStyles(align: PosAlign.right),
+          ),
+          PosColumn(
+            text: "| ${_money(it.total)}",
+            width: 3,
+            styles: const PosStyles(align: PosAlign.right),
+          ),
+        ]),
+      );
+
+      push(generator.feed(1));
     }
 
-    printer.hr();
+    push(generator.hr());
 
-    // ---- Totals ----
-    _kv(printer, "Subtotal", _money(subtotal), boldRight: true);
-    if (discount > 0) _kv(printer, "Discount", "-${_money(discount)}", boldRight: true);
-    if (tax > 0) _kv(printer, "Tax", _money(tax), boldRight: true);
-    if (delivery > 0) _kv(printer, "Delivery", _money(delivery), boldRight: true);
+    push(_kv(generator, "Subtotal", _money(subtotal), boldRight: true));
 
-    printer.hr();
+    if (discount > 0) {
+      push(_kv(generator, "Discount", "-${_money(discount)}", boldRight: true));
+    }
+    if (tax > 0) {
+      push(_kv(generator, "Tax", _money(tax), boldRight: true));
+    }
+    if (delivery > 0) {
+      push(_kv(generator, "Delivery", _money(delivery), boldRight: true));
+    }
 
-    _kv(
-      printer,
-      "Grand Total",
-      _money(grandTotal),
-      boldLeft: true,
-      boldRight: true,
-      rightBig: true,
+    push(generator.hr());
+
+    push(
+      _kv(
+        generator,
+        "Grand Total",
+        _money(grandTotal),
+        boldLeft: true,
+        boldRight: true,
+        rightBig: true,
+      ),
     );
 
-    printer.feed(1);
+    push(generator.feed(1));
 
-    _kv(printer, "Cash Received", _money(cashReceived), boldRight: true);
-    _kv(printer, "Change Amount", _money(changeAmount), boldRight: true);
-
-    printer.hr();
-
-    // ✅ Footer same as preview
-    printer.text(
-      "Thank You, Order Again.",
-      styles: const PosStyles(align: PosAlign.center, bold: true),
-      linesAfter: 1,
-    );
-    printer.text(
-      "Powered By FriendDevelopers",
-      styles: const PosStyles(align: PosAlign.center),
-    );
-    printer.text(
-      "03033807582",
-      styles: const PosStyles(align: PosAlign.center),
+    push(
+      _kv(generator, "Cash Received", _money(cashReceived), boldRight: true),
     );
 
-    printer.feed(2);
-    printer.cut();
-    printer.disconnect();
+    push(
+      _kv(generator, "Change Amount", _money(changeAmount), boldRight: true),
+    );
+
+    push(generator.hr());
+
+    push(
+      generator.text(
+        "Thank You, Order Again.",
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+        linesAfter: 1,
+      ),
+    );
+
+    push(
+      generator.text(
+        "Powered By FriendDevelopers",
+        styles: const PosStyles(align: PosAlign.center),
+      ),
+    );
+
+    push(
+      generator.text(
+        "03033807582",
+        styles: const PosStyles(align: PosAlign.center),
+      ),
+    );
+
+    push(generator.feed(2));
+    push(generator.cut());
+
+    return List<int>.from(bytes);
   }
 
-  /// ✅ Print logo from bytes or asset (default)
-  Future<void> _printLogo(
-    NetworkPrinter printer, {
+  Future<void> _sendBytesToWindowsPrinter({
+    required String printerName,
+    required Uint8List bytes,
+  }) async {
+    final hPrinter = calloc<IntPtr>();
+    final printerNamePtr = TEXT(printerName);
+
+    try {
+      final openResult = OpenPrinter(printerNamePtr, hPrinter, nullptr);
+      if (openResult == 0) {
+        throw Exception('Failed to open printer: $printerName');
+      }
+
+      final docInfo = calloc<DOC_INFO_1>()
+        ..ref.pDocName = TEXT('POS Receipt')
+        ..ref.pOutputFile = nullptr
+        ..ref.pDatatype = TEXT('RAW');
+
+      try {
+        if (StartDocPrinter(hPrinter.value, 1, docInfo.cast()) == 0) {
+          throw Exception('StartDocPrinter failed');
+        }
+
+        if (StartPagePrinter(hPrinter.value) == 0) {
+          throw Exception('StartPagePrinter failed');
+        }
+
+        final dataPtr = calloc<Uint8>(bytes.length);
+        final writtenPtr = calloc<Uint32>();
+
+        try {
+          for (var i = 0; i < bytes.length; i++) {
+            dataPtr[i] = bytes[i];
+          }
+
+          final ok = WritePrinter(
+            hPrinter.value,
+            dataPtr.cast(),
+            bytes.length,
+            writtenPtr,
+          );
+
+          if (ok == 0) {
+            throw Exception('WritePrinter failed');
+          }
+
+          if (writtenPtr.value != bytes.length) {
+            throw Exception(
+              'WritePrinter wrote ${writtenPtr.value} bytes out of ${bytes.length}',
+            );
+          }
+        } finally {
+          calloc.free(dataPtr);
+          calloc.free(writtenPtr);
+        }
+
+        EndPagePrinter(hPrinter.value);
+        EndDocPrinter(hPrinter.value);
+      } finally {
+        free(docInfo.ref.pDocName);
+        free(docInfo.ref.pDatatype);
+        calloc.free(docInfo);
+      }
+
+      ClosePrinter(hPrinter.value);
+    } finally {
+      free(printerNamePtr);
+      calloc.free(hPrinter);
+    }
+  }
+
+  Future<img.Image?> _prepareLogo({
     Uint8List? logoBytes,
     String? logoAsset,
   }) async {
@@ -212,8 +426,8 @@ class ThermalPrinterService {
 
     final String effectiveAsset =
         (logoAsset != null && logoAsset.trim().isNotEmpty)
-            ? logoAsset
-            : defaultLogoAsset;
+        ? logoAsset
+        : defaultLogoAsset;
 
     if (bytes == null) {
       try {
@@ -224,44 +438,52 @@ class ThermalPrinterService {
       }
     }
 
-    if (bytes == null) return;
+    if (bytes == null) return null;
 
     try {
       final decoded = img.decodeImage(bytes);
-      if (decoded == null) return;
+      if (decoded == null) return null;
 
-      // ✅ make it printer-friendly: grayscale + resize
-      final resized = img.copyResize(decoded, width: 220); // good for 80mm
-      final raster = img.grayscale(resized);
-
-      printer.imageRaster(raster, align: PosAlign.center);
-      printer.feed(1);
+      final resized = img.copyResize(decoded, width: 220);
+      return img.grayscale(resized);
     } catch (_) {
-      // ignore image print failure
+      return null;
     }
   }
 
-  static void _kv(
-    NetworkPrinter printer,
+  static List<int> _kv(
+    Generator generator,
     String left,
     String right, {
     bool boldLeft = false,
     bool boldRight = false,
     bool rightBig = false,
   }) {
-    printer.row([
-      PosColumn(text: left, width: 8, styles: PosStyles(bold: boldLeft)),
-      PosColumn(
-        text: right,
-        width: 4,
-        styles: PosStyles(
-          align: PosAlign.right,
-          bold: boldRight,
-          height: rightBig ? PosTextSize.size2 : PosTextSize.size1,
-          width: rightBig ? PosTextSize.size2 : PosTextSize.size1,
+    return List<int>.from(
+      generator.row([
+        PosColumn(
+          text: left,
+          width: 8,
+          styles: PosStyles(bold: boldLeft),
         ),
-      ),
-    ]);
+        PosColumn(
+          text: right,
+          width: 4,
+          styles: PosStyles(
+            align: PosAlign.right,
+            bold: boldRight,
+            height: rightBig ? PosTextSize.size2 : PosTextSize.size1,
+            width: rightBig ? PosTextSize.size2 : PosTextSize.size1,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  static String _fitText(String text, int maxChars) {
+    final value = text.trim();
+    if (value.length <= maxChars) return value;
+    return value.substring(0, maxChars - 1) + '.';
   }
 
   static String _formatDateTime(DateTime dt) {
@@ -275,23 +497,36 @@ class ThermalPrinterService {
 
   static String _monthShort(int m) {
     const months = [
-      "Jan","Feb","Mar","Apr","May","Jun",
-      "Jul","Aug","Sep","Oct","Nov","Dec"
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return months[(m - 1).clamp(0, 11)];
   }
 
   static String _money(num v) => v.toStringAsFixed(2);
-  static String _qty(num v) => (v % 1 == 0) ? v.toInt().toString() : v.toString();
+
+  static String _qty(num v) {
+    return (v % 1 == 0) ? v.toInt().toString() : v.toString();
+  }
 }
 
-class ReceiptItem {
+class SaleReceiptItem {
   final String name;
   final double price;
   final double qty;
   final double total;
 
-  ReceiptItem({
+  SaleReceiptItem({
     required this.name,
     required this.price,
     required this.qty,

@@ -10,7 +10,7 @@ class ReceiptPreviewService {
   static final instance = ReceiptPreviewService._();
 
   // ✅ Default logo (make sure this asset exists in pubspec.yaml)
-  static const String defaultLogoAsset = "assets/images/mr_hungry_logo.jpeg";
+  static const String defaultLogoAsset = "assets/images/logo.jpeg";
 
   Future<void> previewReceipt({
     required String shopName,
@@ -20,7 +20,7 @@ class ReceiptPreviewService {
     Uint8List? logoBytes, // ✅ or pass bytes directly
     required String receiptNo,
     required DateTime dateTime,
-    required List<ReceiptItem> items,
+    required List<SaleReceiptItem> items,
     required double subtotal,
     required double discount,
     required double tax,
@@ -61,10 +61,18 @@ class ReceiptPreviewService {
     }
 
     final doc = pw.Document();
+    final pageFormat = PdfPageFormat(
+      72 * PdfPageFormat.mm, // narrower than 80mm to avoid right crop
+      double.infinity,
+      marginLeft: 4 * PdfPageFormat.mm,
+      marginRight: 4 * PdfPageFormat.mm,
+      marginTop: 6 * PdfPageFormat.mm,
+      marginBottom: 6 * PdfPageFormat.mm,
+    );
 
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.roll80,
+        pageFormat: pageFormat,
         margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         build: (_) {
           pw.Widget line() => pw.Container(
