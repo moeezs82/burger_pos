@@ -131,7 +131,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final deliveryBoy = await showModalBottomSheet<Map<String, dynamic>?>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => UserPickerSheet(token: token),
+      builder: (_) => UserPickerSheet(token: token, role: 'delivery'),
     );
     if (!mounted) return;
     if (deliveryBoy == null) {

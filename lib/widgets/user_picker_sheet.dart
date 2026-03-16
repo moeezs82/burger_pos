@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 class UserPickerSheet extends StatefulWidget {
   final String token;
   final String? branchId;
-  const UserPickerSheet({super.key, required this.token, this.branchId});
+  final String? role;
+  const UserPickerSheet({super.key, required this.token, this.branchId, this.role});
 
   @override
   State<UserPickerSheet> createState() => _UserPickerSheetState();
@@ -41,7 +42,7 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
   Future<void> _fetchUsers({int page = 1}) async {
     setState(() => _loading = true);
     try {
-      final res = await _userService.getUsers(page: page, search: _search, branchId: widget.branchId);
+      final res = await _userService.getUsers(page: page, search: _search, branchId: widget.branchId, role: widget.role);
 
       // ApiResponse::success => { success, data: { current_page, last_page, data: [...] } }
       final pageData = res['data'] as Map<String, dynamic>;
