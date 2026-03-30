@@ -68,6 +68,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
 
   bool _submitting = false;
   bool _autoCashIfEmpty = true;
+  bool isKitchenPrintEnabled = true;
 
   late ProductService _productService;
   late SaleService _saleService;
@@ -410,15 +411,13 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
           total: lineTotal,
         );
       }).toList();
-      final hasPrinter = false;
-      final printers = await WindowsPrinter.getAvailablePrinters();
-      print("Available printers: $printers");
-      // if (!kIsWeb && hasPrinter) {
-      if (true) {
+      final hasPrinter = true;
+      if (!kIsWeb && hasPrinter) {
+        // if (true) {
         try {
           if (Platform.isWindows) {
             await ThermalPrinterService.instance.printSaleReceiptWindows(
-              printerName: 'BlackCopper 80mm Series(1)',
+              printerName: 'main-shop',
               shopName: "Pizza 360",
               shopAddress: "Pizza 360 Miani Road Sukkur",
               shopPhone: "+923702183106",
@@ -433,6 +432,24 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
               changeAmount: changeAmount,
               meta: meta,
             );
+            if (isKitchenPrintEnabled) {
+              await ThermalPrinterService.instance.printSaleReceiptWindows(
+                printerName: 'SLK-TE201',
+                shopName: "Pizza 360 - KITCHEN COPY",
+                shopAddress: "KITCHEN COPY",
+                shopPhone: "+923702183106",
+                receiptNo: receiptNo,
+                dateTime: DateTime.now(),
+                items: receiptItems,
+                subtotal: subtotal,
+                discount: discount,
+                tax: tax,
+                grandTotal: total,
+                cashReceived: cashReceived,
+                changeAmount: changeAmount,
+                meta: meta,
+              );
+            }
           } else {
             await ThermalPrinterService.instance.printSaleReceiptNetwork(
               printerIp: "192.168.1.50",
@@ -515,6 +532,7 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
       _selectedVendorId = null;
       _selectedUserId = null;
       _selectedDeliveryBoyId = null;
+      isKitchenPrintEnabled = true;
 
       // keep branch from provider normally, so no need to force reset
       // only clear local fallback if that matches your flow:
@@ -780,6 +798,21 @@ class _CreateSaleScreenState extends State<CreateSaleScreen> {
               ),
 
               const SizedBox(height: 20),
+
+              const Divider(),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Print Kitchen Copy"),
+                subtitle: const Text(
+                  "When ON, prints a copy of the order for the kitchen.",
+                ),
+                value: isKitchenPrintEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    isKitchenPrintEnabled = value;
+                  });
+                },
+              ),
 
               SizedBox(
                 width: double.infinity,

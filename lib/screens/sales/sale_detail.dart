@@ -27,6 +27,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Map<String, dynamic>? _sale;
   bool _loading = true;
   bool _updated = false;
+  bool isKitchenPrintEnabled = false; // toggle for kitchen print
 
   Map<String, dynamic>? _selectedDeliveryBoy;
   int? _selectedDeliveryBoyId;
@@ -253,6 +254,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final receiptNo = (sale['invoice_no'] ?? sale['id'] ?? 'N/A').toString();
     final createdAtStr = sale['created_at']?.toString();
     final dateTime = DateTime.tryParse(createdAtStr ?? '') ?? DateTime.now();
+    print(dateTime);
 
     // Build ReceiptItem list
     final receiptItems = itemsRaw.map((i) {
@@ -277,12 +279,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       try {
         if (Platform.isWindows) {
           await ThermalPrinterService.instance.printSaleReceiptWindows(
-            printerName: 'BlackCopper 80mm Series(1)',
+            printerName: 'main-shop',
             shopName: "Pizza 360",
             shopAddress: "Pizza 360 Miani Road Sukkur",
             shopPhone: "+923702183106",
             receiptNo: receiptNo,
-            dateTime: DateTime.now(),
+            dateTime: dateTime,
             items: receiptItems,
             subtotal: subtotal,
             discount: discount,
@@ -292,6 +294,24 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             changeAmount: changeAmount,
             meta: meta,
           );
+          if (isKitchenPrintEnabled) {
+            await ThermalPrinterService.instance.printSaleReceiptWindows(
+              printerName: 'SLK-TE201',
+              shopName: "Pizza 360 - KITCHEN COPY",
+              shopAddress: "KITCHEN COPY",
+              shopPhone: "+923702183106",
+              receiptNo: receiptNo,
+              dateTime: dateTime,
+              items: receiptItems,
+              subtotal: subtotal,
+              discount: discount,
+              tax: tax,
+              grandTotal: total,
+              cashReceived: cashReceived,
+              changeAmount: changeAmount,
+              meta: meta,
+            );
+          }
         } else {
           await ThermalPrinterService.instance.printSaleReceiptNetwork(
             printerIp: "192.168.1.50",
@@ -299,7 +319,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             shopAddress: "Pizza 360 Miani Road Sukkur",
             shopPhone: "+923702183106",
             receiptNo: receiptNo,
-            dateTime: DateTime.now(),
+            dateTime: dateTime,
             items: receiptItems,
             subtotal: subtotal,
             discount: discount,
@@ -397,98 +417,130 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ListTile(
-                        title: Text(
-                          "Invoice: ${_sale!['invoice_no']}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Date: ${_sale!['created_at'].toString().substring(0, 10)}",
-                            ),
-                            Text(
-                              "Sale Type: ${getSaleTitle(_sale!['sale_type'])}",
-                            ),
-                            Text(
-                              "Customer: ${_sale!['customer']?['first_name'] ?? "Walk-in"} ${_sale!['customer']?['last_name'] ?? ""}",
-                            ),
-                            // Delivery Boy (editable)
-                            InkWell(
-                              onTap: _pickDeliveryBoy,
-                              borderRadius: BorderRadius.circular(8),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        "Delivery Boy: ${_selectedDeliveryBoy?['name'] ?? _sale?['delivery_boy']?['name'] ?? 'Select'}",
-                                      ),
-                                    ),
-                                    const Icon(Icons.edit, size: 18),
-                                  ],
-                                ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            title: Text(
+                              "Invoice: ${_sale!['invoice_no']}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
                               ),
                             ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Date: ${_sale!['created_at'].toString().substring(0, 10)}",
+                                ),
+                                Text(
+                                  "Sale Type: ${getSaleTitle(_sale!['sale_type'])}",
+                                ),
+                                Text(
+                                  "Customer: ${_sale!['customer']?['first_name'] ?? "Walk-in"} ${_sale!['customer']?['last_name'] ?? ""}",
+                                ),
 
-                            if (_deliveryBoyChanged) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: _savingDeliveryBoy
-                                          ? null
-                                          : () {
-                                              // reset selection back to current sale value
-                                              final db = _sale?['delivery_boy'];
-                                              setState(() {
-                                                _selectedDeliveryBoy = db;
-                                                _selectedDeliveryBoyId =
-                                                    (db?['id'] is int)
-                                                    ? db['id']
-                                                    : int.tryParse(
-                                                        '${db?['id']}',
-                                                      );
-                                              });
-                                            },
-                                      child: const Text("Cancel"),
+                                /// Delivery Boy
+                                InkWell(
+                                  onTap: _pickDeliveryBoy,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            "Delivery Boy: ${_selectedDeliveryBoy?['name'] ?? _sale?['delivery_boy']?['name'] ?? 'Select'}",
+                                          ),
+                                        ),
+                                        const Icon(Icons.edit, size: 18),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _savingDeliveryBoy
-                                          ? null
-                                          : _saveDeliveryBoy,
-                                      icon: _savingDeliveryBoy
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                          : const Icon(Icons.save),
-                                      label: const Text("Save"),
-                                    ),
+                                ),
+
+                                if (_deliveryBoyChanged) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: _savingDeliveryBoy
+                                              ? null
+                                              : () {
+                                                  final db =
+                                                      _sale?['delivery_boy'];
+                                                  setState(() {
+                                                    _selectedDeliveryBoy = db;
+                                                    _selectedDeliveryBoyId =
+                                                        (db?['id'] is int)
+                                                        ? db['id']
+                                                        : int.tryParse(
+                                                            '${db?['id']}',
+                                                          );
+                                                  });
+                                                },
+                                          child: const Text("Cancel"),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: _savingDeliveryBoy
+                                              ? null
+                                              : _saveDeliveryBoy,
+                                          icon: _savingDeliveryBoy
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Icon(Icons.save),
+                                          label: const Text("Save"),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.print),
-                          onPressed: _printInvoice,
-                        ),
+                              ],
+                            ),
+
+                            /// PRINT BUTTON
+                            trailing: IconButton(
+                              icon: const Icon(Icons.print),
+                              onPressed: _printInvoice,
+                            ),
+                          ),
+
+                          /// 👇 PROFESSIONAL KITCHEN PRINT TOGGLE
+                          const Divider(height: 1),
+
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            title: const Text(
+                              "Print Kitchen Copy",
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            subtitle: const Text(
+                              "Also print order for kitchen staff",
+                            ),
+                            secondary: const Icon(Icons.restaurant_menu),
+                            value: isKitchenPrintEnabled,
+                            onChanged: (value) {
+                              setState(() {
+                                isKitchenPrintEnabled = value;
+                              });
+                            },
+                          ),
+                        ],
                       ),
                     ),
 
