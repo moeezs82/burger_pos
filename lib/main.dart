@@ -1,3 +1,4 @@
+import 'package:counter_iq/providers/printer_config_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,9 +24,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..tryAutoLogin()),
         ChangeNotifierProvider(create: (_) => BranchProvider()),
-        ChangeNotifierProvider(
-          create: (_) => AppLockProvider()..init(),
-        ),
+        ChangeNotifierProvider(create: (_) => AppLockProvider()..init()),
+        ChangeNotifierProvider(create: (_) => PrinterConfigProvider()..init()),
       ],
       child: Consumer<AppLockProvider>(
         builder: (context, appLock, _) {

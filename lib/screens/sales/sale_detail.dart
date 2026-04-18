@@ -1,5 +1,6 @@
 import 'package:counter_iq/api/core/api_client.dart';
 import 'package:counter_iq/providers/auth_provider.dart';
+import 'package:counter_iq/providers/printer_config_provider.dart';
 import 'package:counter_iq/widgets/product_picker_sheet.dart';
 import 'package:counter_iq/widgets/user_picker_sheet.dart';
 import 'package:counter_iq/widgets/vendor_picker_sheet.dart';
@@ -254,7 +255,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final receiptNo = (sale['invoice_no'] ?? sale['id'] ?? 'N/A').toString();
     final createdAtStr = sale['created_at']?.toString();
     final dateTime = DateTime.tryParse(createdAtStr ?? '') ?? DateTime.now();
-    print(dateTime);
 
     // Build ReceiptItem list
     final receiptItems = itemsRaw.map((i) {
@@ -274,15 +274,32 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
     // 🟡 set from your settings later
     final hasPrinter = true;
+    final printerConfig = context.read<PrinterConfigProvider>();
+
+    if ((printerConfig.mainPrinterName ?? '').isEmpty) {
+      await printerConfig.refresh();
+    }
+
+    final mainPrinter = printerConfig.mainPrinterName;
+    final kitchenPrinter = printerConfig.kitchenPrinterName;
+
+    debugPrint('Using main printer: $mainPrinter');
+    debugPrint('Using kitchen printer: $kitchenPrinter');
 
     if (!kIsWeb && hasPrinter) {
       try {
         if (Platform.isWindows) {
           await ThermalPrinterService.instance.printSaleReceiptWindows(
-            printerName: 'main-shop',
-            shopName: "Pizza 360",
-            shopAddress: "Pizza 360 Miani Road Sukkur",
-            shopPhone: "+923702183106",
+            printerName: mainPrinter ?? 'main-shop',
+            shopName: printerConfig.shopName.isNotEmpty
+                ? printerConfig.shopName
+                : "Pizza 360",
+            shopAddress: printerConfig.shopAddress.isNotEmpty
+                ? printerConfig.shopAddress
+                : "Pizza 360 Miani Road Sukkur",
+            shopPhone: printerConfig.shopPhone.isNotEmpty
+                ? printerConfig.shopPhone
+                : "+923702183106",
             receiptNo: receiptNo,
             dateTime: dateTime,
             items: receiptItems,
@@ -296,10 +313,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           );
           if (isKitchenPrintEnabled) {
             await ThermalPrinterService.instance.printSaleReceiptWindows(
-              printerName: 'SLK-TE201',
-              shopName: "Pizza 360 - KITCHEN COPY",
+              printerName: kitchenPrinter ?? 'kitchen',
+              shopName:
+                  "${printerConfig.shopName.isNotEmpty ? printerConfig.shopName : "Pizza 360"} - KITCHEN COPY",
               shopAddress: "KITCHEN COPY",
-              shopPhone: "+923702183106",
+              shopPhone: printerConfig.shopPhone.isNotEmpty
+                  ? printerConfig.shopPhone
+                  : "+923702183106",
               receiptNo: receiptNo,
               dateTime: dateTime,
               items: receiptItems,
